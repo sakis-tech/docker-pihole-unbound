@@ -24,7 +24,7 @@ print_header() {
   echo -e "- Setup Docker macvlan network"
   echo -e "- Launch Pi-hole + Unbound using Docker"
   echo -e "\n→ Press [Enter] to begin..."
-  read -r
+  read -r _
 }
 
 check_command() {
@@ -41,7 +41,7 @@ install_docker() {
 install_docker_compose() {
   echo -e "${YELLOW}▶ Installing Docker Compose…${NC}"
   if docker compose version &>/dev/null; then
-    echo "Docker Compose plugin is already installed."
+    echo -e "${GREEN}Docker Compose plugin is already installed.${NC}"
     return
   fi
   sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -56,13 +56,13 @@ install_git_curl() {
   elif [[ "$OS" == "centos" || "$OS" == "fedora" ]]; then
     sudo yum install -y git curl
   else
-    echo -e "${RED}Unsupported OS for automatic Git/Curl install. Please install manually.${NC}"
+    echo -e "${RED}Unsupported OS. Please install Git and Curl manually.${NC}"
     exit 1
   fi
 }
 
 detect_os() {
-  if [ -f /etc/os-release ]; then
+  if [[ -f /etc/os-release ]]; then
     . /etc/os-release
     case "$ID" in
       debian|ubuntu) OS="debian" ;;
@@ -76,7 +76,8 @@ detect_os() {
 
 check_docker() {
   if check_command docker && docker version &>/dev/null; then
-    echo -e "${GREEN}Docker version: $(docker version --format '{{.Server.Version}}')${NC}"
+    VERSION=$(docker version --format '{{.Server.Version}}')
+    echo -e "${GREEN}Docker version: $VERSION${NC}"
     return 0
   fi
   echo -e "${RED}Docker not found.${NC}"
@@ -85,10 +86,12 @@ check_docker() {
 
 check_docker_compose() {
   if check_command docker-compose; then
-    echo -e "${GREEN}Docker Compose version: $(docker-compose version --short)${NC}"
+    VERSION=$(docker-compose version --short)
+    echo -e "${GREEN}Docker Compose version: $VERSION${NC}"
     return 0
   elif docker compose version &>/dev/null; then
-    echo -e "${GREEN}Docker Compose (plugin) version: $(docker compose version --short)${NC}"
+    VERSION=$(docker compose version --short)
+    echo -e "${GREEN}Docker Compose (plugin) version: $VERSION${NC}"
     return 0
   fi
   echo -e "${RED}Docker Compose not found.${NC}"
@@ -110,7 +113,7 @@ add_user_to_docker_group() {
   local user=$1
   echo -e "${YELLOW}▶ Adding $user to docker group…${NC}"
   sudo usermod -aG docker "$user"
-  echo -e "${GREEN}User $user added to docker group. Please logout and login again for changes to take effect.${NC}"
+  echo -e "${GREEN}User $user added to docker group. Please logout and login again.${NC}"
 }
 
 clone_repo() {
@@ -135,14 +138,14 @@ prompt_env() {
     read -rp "Web admin password: " WEBPASSWORD
     read -rp "Pi-hole Web Port (e.g. 80): " PIHOLE_WEBPORT
     read -rp "Domain Name (e.g. local): " DOMAIN_NAME
+    HOSTNAME="pihole"
   else
     TZ="Europe/Berlin"
     WEBPASSWORD="admin"
     PIHOLE_WEBPORT="80"
     DOMAIN_NAME="local"
+    HOSTNAME="pihole"
   fi
-
-  HOSTNAME="pihole"
 
   cat > .env <<EOF
 TZ=$TZ
@@ -155,19 +158,19 @@ EOF
 
 prompt_macvlan() {
   echo -e "\n${YELLOW}▶ Configure Docker macvlan network…${NC}"
-  read -rp "Parent interface (e.g. eth0): " MACVLAN_PARENT
-  read -rp "Subnet (e.g. 192.168.10.0/24): " MACVLAN_SUBNET
-  read -rp "Gateway (e.g. 192.168.10.1): " MACVLAN_GATEWAY
-  read -rp "Pi-hole IP (e.g. 192.168.10.50): " PIHOLE_IP
+  read -rp "Parent interface for macvlan (e.g. eth0): " MACVLAN_PARENT
+  read -rp "Subnet for macvlan (e.g. 192.168.10.0/24): " MACVLAN_SUBNET
+  read -rp "Gateway for macvlan (e.g. 192.168.10.1): " MACVLAN_GATEWAY
+  read -rp "IP for Pi-hole container (e.g. 192.168.10.50): " PIHOLE_IP
 }
 
 create_macvlan_network() {
   echo -e "\n${YELLOW}▶ Creating Docker macvlan network if not exists…${NC}"
   if ! docker network ls --format '{{.Name}}' | grep -q "^pihole_macvlan$"; then
     docker network create -d macvlan \
-      --subnet="$MACVLAN_SUBNET" \
-      --gateway="$MACVLAN_GATEWAY" \
-      -o parent="$MACVLAN_PARENT" \
+      --subnet=${MACVLAN_SUBNET} \
+      --gateway=${MACVLAN_GATEWAY} \
+      -o parent=${MACVLAN_PARENT} \
       pihole_macvlan
     echo -e "${GREEN}macvlan network 'pihole_macvlan' created.${NC}"
   else
@@ -201,7 +204,7 @@ services:
       - FTLCONF_webserver_port=${PIHOLE_WEBPORT}
     volumes:
       - ./config/pihole:/etc/pihole:rw
-      - ./config/unbound:/etc/unbound:rw
+      - ./config/pihole:/etc/dnsmasq.d:rw
     restart: unless-stopped
 
 networks:
@@ -230,31 +233,24 @@ print_success() {
 
 main() {
   print_header
-
   detect_os
-
   if ! check_command docker || ! check_docker; then
     install_docker
   fi
-
   if ! check_command docker-compose && ! docker compose version &>/dev/null; then
     install_docker_compose
   fi
-
   if ! check_command git || ! check_command curl; then
     install_git_curl
   fi
-
   CURRENT_USER=$(whoami)
   if ! check_docker_group "$CURRENT_USER"; then
     add_user_to_docker_group "$CURRENT_USER"
     echo -e "${YELLOW}Please logout and login again, then rerun the script.${NC}"
     exit 0
   fi
-
   clone_repo
   cd "$REPO_DIR"
-
   create_config_dirs
   prompt_env
   prompt_macvlan
