@@ -11,7 +11,6 @@ NC='\033[0m'
 CHECK="\xE2\x9C\x85"     # ✅
 CROSS="\xE2\x9D\x8C"     # ❌
 QUESTION="\xE2\x9D\x93"  # ❓
-="\xE2\x9E\xA1"     # ➡️
 INFO="\xF0\x9F\x93\x84"   # 📄
 GEAR="\xF0\x9F\x94\xA7"   # 🔧
 DOWNLOAD="\xF0\x9F\x93\xA6" # 📦
