@@ -1,264 +1,233 @@
+cat install.sh
 #!/usr/bin/env bash
 set -euo pipefail
 
-##### Farben #####
+# Farben
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-BLUE='\033[1;34m'
 RED='\033[0;31m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 REPO_URL="https://github.com/sakis-tech/docker-pihole-unbound.git"
-WORKDIR="docker-pihole-unbound"
+REPO_DIR="docker-pihole-unbound"
 
-##### OS-Erkennung #####
-detect_os(){
-  if [[ -r /etc/os-release ]]; then
-    . /etc/os-release
-    case "$ID" in
-      ubuntu|debian)      PKG_MGR="apt-get"; INSTALL="sudo apt-get install -y"; UPDATE="sudo apt-get update";;
-      fedora|centos|rhel) PKG_MGR="yum";     INSTALL="sudo yum install -y";    UPDATE="";;
-      alpine)             PKG_MGR="apk";     INSTALL="sudo apk add";          UPDATE="";;
-      *)                  PKG_MGR="";;
-    esac
-  fi
-}
-
-##### Helfer #####
-command_exists(){ command -v "$1" &>/dev/null; }
-print_step(){ echo -e "\n${CYAN}▶ $1${NC}"; }
-header(){
+# Header anzeigen
+show_header() {
   clear
-  echo -e "${BLUE}==============================================${NC}"
-  echo -e "     ${CYAN}Pi-hole + Unbound Auto‑Installer${NC}"
-  echo -e "${BLUE}==============================================${NC}"
-}
-intro(){
-  header
-  echo -e "${YELLOW}Dieses Skript installiert automatisch:${NC}"
-  echo "- Docker & Docker Compose"
-  echo "- Git & Curl"
-  echo "- Klont das Repo"
-  echo "- Erstellt .env und docker-compose.yaml"
-  echo "- Startet Pi-hole + Unbound im Docker-Host‑Netz"
+  echo -e "${YELLOW}=============================================="
+  echo -e "     Pi-hole + Unbound Auto‑Installer"
+  echo -e "==============================================${NC}"
+  echo "This script will automatically:"
+  echo "- Install Docker & Docker Compose"
+  echo "- Install Git & Curl"
+  echo "- Clone the project"
+  echo "- Create .env and docker-compose.yaml"
+  echo "- Launch Pi-hole + Unbound using Docker"
   echo
-  read -rp "→ Drücke [Enter] um zu starten…" _
 }
 
-##### 1) Voraussetzungen installieren #####
-install_prereqs(){
-  print_step "Prüfe Git & Curl…"
-  local need_git=false need_curl=false
-  command_exists git  || need_git=true
-  command_exists curl || need_curl=true
+pause_for_user() {
+  read -rp "→ Press [Enter] to begin..."
+}
 
-  if $need_git || $need_curl; then
-    read -rp "→ Git/Curl fehlen. Installieren? [y/N]: " ans; ans=${ans,,}
-    if [[ "$ans" =~ ^(y|yes)$ ]]; then
-      if [[ -n "$PKG_MGR" ]]; then
-        $UPDATE
-        $INSTALL git curl
-      else
-        echo -e "${RED}OS nicht unterstützt – installiere git & curl manuell.${NC}"
-        exit 1
-      fi
+check_requirements() {
+  echo -e "\n${YELLOW}▶ Checking Docker & Docker Compose...${NC}"
+  DOCKER_OK=false
+  DOCKER_COMPOSE_OK=false
+
+  if command -v docker &>/dev/null && docker --version &>/dev/null; then
+    echo "Docker version: $(docker --version)"
+    DOCKER_OK=true
+  else
+    echo "Docker not found"
+  fi
+
+  if command -v docker-compose &>/dev/null && docker-compose --version &>/dev/null; then
+    echo "Docker Compose version: $(docker-compose --version)"
+    DOCKER_COMPOSE_OK=true
+  else
+    echo "Docker Compose not found"
+  fi
+
+  if [ "$DOCKER_OK" = false ] || [ "$DOCKER_COMPOSE_OK" = false ]; then
+    read -rp "→ Install missing tools? [y/N]: " INSTALL_TOOLS
+    if [[ "$INSTALL_TOOLS" =~ ^[Yy]$ ]]; then
+      install_missing_tools
     else
-      echo -e "${RED}Abbruch, Git und Curl werden benötigt.${NC}"
+      echo -e "${RED}Aborting – required tools missing.${NC}"
       exit 1
     fi
   else
-    echo -e "${GREEN}Git & Curl sind vorhanden.${NC}"
-  fi
-
-  print_step "Prüfe Docker & Docker Compose…"
-  local need_docker=false need_compose=false
-
-  if command_exists docker; then
-    echo -e "${GREEN}$(docker --version)${NC}"
-  else
-    echo -e "${RED}Docker fehlt${NC}"
-    need_docker=true
-  fi
-
-  if docker-compose version &>/dev/null; then
-    echo -e "${GREEN}$(docker-compose version)${NC}"
-  elif docker compose version &>/dev/null; then
-    echo -e "${GREEN}$(docker compose version)${NC}"
-  else
-    echo -e "${RED}Docker Compose fehlt${NC}"
-    need_compose=true
-  fi
-
-  if ! $need_docker && ! $need_compose; then
-    echo -e "${GREEN}Docker & Compose sind vorhanden.${NC}"
-    return
-  fi
-
-  read -rp "→ Fehlende Tools installieren? [y/N]: " ans; ans=${ans,,}
-  if [[ "$ans" =~ ^(y|yes)$ ]]; then
-    if $need_docker; then
-      print_step "Installiere Docker…"
-      curl -fsSL https://get.docker.com -o get-docker.sh
-      sudo sh get-docker.sh
-    fi
-    if $need_compose; then
-      print_step "Installiere Docker Compose…"
-      case "$PKG_MGR" in
-        apt-get)
-          sudo apt-get update
-          sudo apt-get install -y docker-compose-plugin
-          sudo ln -sf /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
-          ;;
-        yum)
-          sudo yum install -y python3-pip
-          sudo pip3 install docker-compose
-          ;;
-        apk)
-          sudo apk add docker-compose
-          ;;
-      esac
-    fi
-  else
-    echo -e "${RED}Abbruch. Fehlende Tools müssen installiert werden.${NC}"
-    exit 1
+    echo -e "${GREEN}Docker & Compose are installed.${NC}"
   fi
 }
 
-##### 2) Docker‑Gruppe #####
-configure_docker_group(){
-  print_step "Prüfe docker‑Gruppe für $USER…"
-  if id -nG "$USER" | grep -qw docker; then
-    echo -e "${GREEN}$USER ist bereits in docker‑Gruppe.${NC}"
+detect_os() {
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    echo "$ID"
   else
-    read -rp "→ $USER zur docker‑Gruppe hinzufügen? [y/N]: " ans; ans=${ans,,}
-    if [[ "$ans" =~ ^(y|yes)$ ]]; then
+    echo "unknown"
+  fi
+}
+
+install_missing_tools() {
+  echo -e "${YELLOW}▶ Installing Git & Curl...${NC}"
+  OS_ID=$(detect_os)
+
+  case "$OS_ID" in
+    debian | ubuntu | raspbian)
+      sudo apt update
+      sudo apt install -y curl git
+      ;;
+    fedora)
+      sudo dnf install -y curl git
+      ;;
+    alpine)
+      sudo apk add curl git
+      ;;
+    *)
+      echo -e "${RED}Unsupported OS. Please install curl/git manually.${NC}"
+      exit 1
+      ;;
+  esac
+
+  echo -e "${YELLOW}▶ Installing Docker...${NC}"
+  curl -fsSL https://get.docker.com -o get-docker.sh
+  sudo sh get-docker.sh
+
+  echo -e "${YELLOW}▶ Installing Docker Compose...${NC}"
+  sudo apt install -y docker-compose || true
+}
+
+check_docker_group() {
+  echo -e "\n${YELLOW}▶ Checking docker group for ${USER}...${NC}"
+  if groups "$USER" | grep -q '\bdocker\b'; then
+    echo -e "${GREEN}${USER} is already in the docker group.${NC}"
+  else
+    read -rp "→ Add ${USER} to docker group? [y/N]: " ADD_GROUP
+    if [[ "$ADD_GROUP" =~ ^[Yy]$ ]]; then
       sudo usermod -aG docker "$USER"
-      echo -e "${GREEN}Erledigt – bitte abmelden und neu anmelden.${NC}"
-    else
-      echo -e "${YELLOW}Übersprungen.${NC}"
+      echo -e "${YELLOW}Please log out and back in to apply group changes.${NC}"
     fi
   fi
 }
 
-##### 3) Repo klonen #####
-clone_repo(){
-  print_step "Klonen des Repositories…"
-  if [[ -d "$WORKDIR" ]]; then
-    echo -e "${GREEN}$WORKDIR existiert – übersprungen.${NC}"
+clone_repo() {
+  echo -e "\n${YELLOW}▶ Cloning repository…${NC}"
+  if [ -d "$REPO_DIR" ]; then
+    echo -e "${GREEN}$REPO_DIR already exists – skipping.${NC}"
   else
     git clone "$REPO_URL"
+    cd "$REPO_DIR"
   fi
-  cd "$WORKDIR"
 }
 
-##### 4) .env generieren #####
-generate_env(){
-  print_step "Erstelle .env…"
-  # Beispielwerte
-  local example_host="pi-hole"
-  local example_domain="lan"
-  local example_tz="Europe/Berlin"
-  local example_pw="admin"
-  local example_theme="default-light"
-  local example_port="80"
+dir_setup() {
+  echo -e "${YELLOW}▶ Creating configuration directories…${NC}"
+  mkdir -p config/pihole config/unbound
+}
 
-  echo -e "Beispielwerte:"
-  echo -e "  HOSTNAME=${example_host}"
-  echo -e "  DOMAIN_NAME=${example_domain}"
-  echo -e "  TZ=${example_tz}"
-  echo -e "  WEBPASSWORD=${example_pw}"
-  echo -e "  WEBTHEME=${example_theme}"
-  echo -e "  PIHOLE_WEBPORT=${example_port}"
-  read -rp "→ Beispielwerte verwenden? [Y/n]: " use_example
-  use_example=${use_example,,}
-
-  if [[ -z "$use_example" || "$use_example" == "y" || "$use_example" == "yes" ]]; then
-    HOSTNAME="$example_host"
-    DOMAIN_NAME="$example_domain"
-    TZ_ZONE="$example_tz"
-    WEBPASSWORD="$example_pw"
-    WEBTHEME="$example_theme"
-    PIHOLE_WEBPORT="$example_port"
+prompt_env() {
+  echo -e "\n${YELLOW}▶ Creating .env file…${NC}"
+  read -rp "Use example config? (Europe/Berlin, web pw 'admin', DHCP 192.168.1.100–200, gateway 192.168.1.1, eth0)? [Y/n]: " USE_EXAMPLE
+  if [[ "$USE_EXAMPLE" =~ ^[Nn]$ ]]; then
+    read -rp "Timezone (e.g. Europe/Berlin): " TZ
+    read -rp "Web admin password: " WEBPASSWORD
+    read -rp "DHCP Range Start (e.g. 192.168.1.100): " DHCP_START
+    read -rp "DHCP Range End (e.g. 192.168.1.200): " DHCP_END
+    read -rp "DHCP Gateway/Router IP (e.g. 192.168.1.1): " DHCP_ROUTER
+    read -rp "DHCP Interface (e.g. eth0): " DHCP_IF
+    read -rp "Pi-hole Web UI Port (e.g. 80): " PIHOLE_WEBPORT
+    PIHOLE_WEBPORT=${PIHOLE_WEBPORT:-80}
   else
-    read -rp "Hostname [${example_host}]: " HOSTNAME
-    HOSTNAME=${HOSTNAME:-$example_host}
-    read -rp "Domain (optional) [${example_domain}]: " DOMAIN_NAME
-    DOMAIN_NAME=${DOMAIN_NAME:-$example_domain}
-    read -rp "Zeitzone [${example_tz}]: " TZ_ZONE
-    TZ_ZONE=${TZ_ZONE:-$example_tz}
-    read -rp "Web‑Admin Passwort [${example_pw}]: " WEBPASSWORD
-    WEBPASSWORD=${WEBPASSWORD:-$example_pw}
-    read -rp "Theme [${example_theme}]: " WEBTHEME
-    WEBTHEME=${WEBTHEME:-$example_theme}
-    read -rp "Web UI Port [${example_port}]: " PIHOLE_WEBPORT
-    PIHOLE_WEBPORT=${PIHOLE_WEBPORT:-$example_port}
+    TZ="Europe/Berlin"
+    WEBPASSWORD="admin"
+    DHCP_START="192.168.1.100"
+    DHCP_END="192.168.1.200"
+    DHCP_ROUTER="192.168.1.1"
+    DHCP_IF="eth0"
+    PIHOLE_WEBPORT="80"
   fi
 
   cat > .env <<EOF
-HOSTNAME=${HOSTNAME}
-DOMAIN_NAME=${DOMAIN_NAME}
-TZ=${TZ_ZONE}
-WEBPASSWORD=${WEBPASSWORD}
-WEBTHEME=${WEBTHEME}
-PIHOLE_WEBPORT=${PIHOLE_WEBPORT}
+TZ=$TZ
+WEBPASSWORD=$WEBPASSWORD
+PIHOLE_DHCP_START=$DHCP_START
+PIHOLE_DHCP_END=$DHCP_END
+PIHOLE_DHCP_ROUTER=$DHCP_ROUTER
+PIHOLE_DHCP_INTERFACE=$DHCP_IF
+PIHOLE_WEBPORT=$PIHOLE_WEBPORT
+HOSTNAME=pihole
+DOMAIN_NAME=local
 EOF
-
-  echo -e "${GREEN}.env erstellt mit folgenden Werten:${NC}"
-  sed 's/^/  /' .env
 }
 
-##### 5) docker-compose.yaml erzeugen #####
-generate_compose(){
-  print_step "Erstelle docker-compose.yaml…"
-  cat > docker-compose.yaml <<EOF
+generate_compose() {
+  echo -e "\n${YELLOW}▶ Creating docker-compose.yaml…${NC}"
+  cat > docker-compose.yaml <<'EOF'
 version: "3.8"
 services:
   pihole-unbound:
     container_name: pihole-unbound
     image: mpgirro/pihole-unbound:latest
     network_mode: host
-    hostname: \${HOSTNAME}
-    domainname: \${DOMAIN_NAME}
+    hostname: ${HOSTNAME}
+    domainname: ${DOMAIN_NAME}
     cap_add:
       - NET_ADMIN
       - SYS_TIME
       - SYS_NICE
     environment:
-      - TZ=\${TZ:-UTC}
-      - FTLCONF_webserver_api_password=\${WEBPASSWORD}
-      - FTLCONF_webserver_interface_theme=\${WEBTHEME:-default-light}
+      - TZ=${TZ}
+      - FTLCONF_webserver_api_password=${WEBPASSWORD}
+      - FTLCONF_webserver_interface_theme=default-light
       - FTLCONF_dns_upstreams=127.0.0.1#5335
       - FTLCONF_dns_listeningMode=all
-      - FTLCONF_webserver_port=\${PIHOLE_WEBPORT}
+      - FTLCONF_webserver_port=${PIHOLE_WEBPORT}
+      - DHCP_START=${PIHOLE_DHCP_START}
+      - DHCP_END=${PIHOLE_DHCP_END}
+      - DHCP_ROUTER=${PIHOLE_DHCP_ROUTER}
+      - DHCP_INTERFACE=${PIHOLE_DHCP_INTERFACE}
     volumes:
-      - etc_pihole-unbound:/etc/pihole:rw
-      - etc_pihole_dnsmasq-unbound:/etc/dnsmasq.d:rw
+      - ./config/pihole:/etc/pihole:rw
+      - ./config/pihole:/etc/dnsmasq.d:rw
     restart: unless-stopped
 
-volumes:
-  etc_pihole-unbound:
-  etc_pihole_dnsmasq-unbound:
 EOF
 }
 
-##### 6) Stack starten #####
-start_stack(){
-  print_step "Starte Pi-hole + Unbound…"
+finish_message() {
+  echo -e "${GREEN}▶ Starting Docker containers...${NC}"
   docker-compose up -d
-  echo -e "${GREEN}Fertig! Web UI: http://<HOST-IP>:\${PIHOLE_WEBPORT}${NC}"
+
+  HOST_IP=$(ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}')
+  if [ -z "$HOST_IP" ]; then
+    HOST_IP="localhost"
+  fi
+
+  echo -e "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo -e "🎉 Pi-hole Web Interface is ready!\n"
+  echo -e "→ Open in browser: http://${HOST_IP}:${PIHOLE_WEBPORT}\n"
+  echo -e "📍 Login Password: ${WEBPASSWORD}\n"
+  echo -e "🛠️ Configuration Info:"
+  echo -e "   - Web UI: Pi-hole settings and DHCP"
+  echo -e "   - Unbound: ./config/unbound/unbound.conf\n"
+  echo -e "💡 Tip: Restart containers with:"
+  echo -e "   docker-compose restart"
+  echo -e "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n${NC}"
 }
 
-##### Hauptablauf #####
-main(){
-  detect_os
-  intro
-  install_prereqs
-  configure_docker_group
+main() {
+  show_header
+  pause_for_user
+  check_requirements
+  check_docker_group
   clone_repo
-  generate_env
+  dir_setup
+  prompt_env
   generate_compose
-  start_stack
+  finish_message
 }
 
 main
