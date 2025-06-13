@@ -132,7 +132,16 @@ create_config_dirs() {
 
 prompt_env() {
   echo -e "\n${YELLOW}▶ Creating .env file…${NC}"
-  read -rp "Use example config? [Y/n]: " USE_EXAMPLE
+
+  echo -e "\n${GREEN}Example Configuration:${NC}"
+  echo -e "  Timezone:          Europe/Berlin"
+  echo -e "  Web Admin Password: admin"
+  echo -e "  Pi-hole Web Port:   80"
+  echo -e "  Domain Name:        local"
+  echo -e "  Hostname:           pihole"
+
+  read -rp "Use this example config? [Y/n]: " USE_EXAMPLE
+
   if [[ "$USE_EXAMPLE" =~ ^[Nn]$ ]]; then
     read -rp "Timezone (e.g. Europe/Berlin): " TZ
     read -rp "Web admin password: " WEBPASSWORD
@@ -155,6 +164,7 @@ HOSTNAME=$HOSTNAME
 DOMAIN_NAME=$DOMAIN_NAME
 EOF
 }
+
 
 prompt_macvlan() {
   echo -e "\n${YELLOW}▶ Detecting available network interfaces…${NC}"
