@@ -157,11 +157,34 @@ EOF
 }
 
 prompt_macvlan() {
-  echo -e "\n${YELLOW}▶ Configure Docker macvlan network…${NC}"
-  read -rp "Parent interface for macvlan (e.g. eth0): " MACVLAN_PARENT
+  echo -e "\n${YELLOW}▶ Detecting available network interfaces…${NC}"
+
+  # Get a list of physical (non-virtual, non-loopback) interfaces
+  interfaces=($(ip -o link show | awk -F': ' '{print $2}' | grep -vE 'lo|docker|veth|br-|virbr|vmnet|tun|tap'))
+
+  if [[ ${#interfaces[@]} -eq 0 ]]; then
+    echo -e "${RED}No valid network interfaces found.${NC}"
+    exit 1
+  fi
+
+  echo -e "\nAvailable interfaces:"
+  for i in "${!interfaces[@]}"; do
+    echo "  [$i] ${interfaces[$i]}"
+  done
+
+  read -rp "Select the interface number to use for macvlan: " iface_index
+
+  if ! [[ "$iface_index" =~ ^[0-9]+$ ]] || [[ "$iface_index" -ge "${#interfaces[@]}" ]]; then
+    echo -e "${RED}Invalid selection. Exiting.${NC}"
+    exit 1
+  fi
+
+  MACVLAN_PARENT="${interfaces[$iface_index]}"
+  echo -e "${GREEN}Selected interface: $MACVLAN_PARENT${NC}"
+
   read -rp "Subnet for macvlan (e.g. 192.168.10.0/24): " MACVLAN_SUBNET
   read -rp "Gateway for macvlan (e.g. 192.168.10.1): " MACVLAN_GATEWAY
-  read -rp "IP for Pi-hole container (e.g. 192.168.10.50): " PIHOLE_IP
+  read -rp "IP address for Pi-hole container (e.g. 192.168.10.50): " PIHOLE_IP
 }
 
 create_macvlan_network() {
