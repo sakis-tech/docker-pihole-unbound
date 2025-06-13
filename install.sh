@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Farben für Ausgabe
+# Colors and Icons
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+CYAN='\033[1;36m'
+NC='\033[0m'
 
-# GitHub Repo
+CHECK="\xE2\x9C\x85"     # ✅
+CROSS="\xE2\x9D\x8C"     # ❌
+QUESTION="\xE2\x9D\x93"  # ❓
+ARROW="\xE2\x9E\xA1"     # ➡️
+INFO="\xF0\x9F\x93\x84"   # 📄
+GEAR="\xF0\x9F\x94\xA7"   # 🔧
+DOWNLOAD="\xF0\x9F\x93\xA6" # 📦
+
 REPO_URL="https://github.com/mpgirro/docker-pihole-unbound.git"
 REPO_DIR="docker-pihole-unbound"
 
@@ -16,15 +24,21 @@ print_header() {
   echo -e "${GREEN}==============================================${NC}"
   echo -e "${GREEN}     Pi-hole + Unbound Auto‑Installer         ${NC}"
   echo -e "${GREEN}==============================================${NC}"
-  echo -e "This script will automatically:"
-  echo -e "- Install Docker & Docker Compose"
-  echo -e "- Install Git & Curl"
-  echo -e "- Clone the project"
-  echo -e "- Create .env and docker-compose.yaml"
-  echo -e "- Setup Docker macvlan network"
-  echo -e "- Launch Pi-hole + Unbound using Docker"
-  echo -e "\n→ Press [Enter] to begin..."
+  echo -e "${INFO} This script will automatically:"
+  echo -e "  - Install Docker & Docker Compose"
+  echo -e "  - Install Git & Curl"
+  echo -e "  - Clone the project"
+  echo -e "  - Create .env and docker-compose.yaml"
+  echo -e "  - Setup Docker macvlan network"
+  echo -e "  - Launch Pi-hole + Unbound using Docker"
+  echo -e "\n${QUESTION}${ARROW} Press [Enter] to begin..."
   read -r _
+}
+
+print_section() {
+  echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "  $1"
+  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
 check_command() {
@@ -32,16 +46,16 @@ check_command() {
 }
 
 install_docker() {
-  echo -e "${YELLOW}▶ Installing Docker…${NC}"
+  print_section "${DOWNLOAD} Installing Docker"
   curl -fsSL https://get.docker.com -o get-docker.sh
   sudo sh get-docker.sh
   rm get-docker.sh
 }
 
 install_docker_compose() {
-  echo -e "${YELLOW}▶ Installing Docker Compose…${NC}"
+  print_section "${DOWNLOAD} Installing Docker Compose"
   if docker compose version &>/dev/null; then
-    echo -e "${GREEN}Docker Compose plugin is already installed.${NC}"
+    echo -e "${CHECK} Docker Compose plugin is already installed."
     return
   fi
   sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
@@ -49,20 +63,20 @@ install_docker_compose() {
 }
 
 install_git_curl() {
-  echo -e "${YELLOW}▶ Installing Git and Curl…${NC}"
+  print_section "${DOWNLOAD} Installing Git and Curl"
   if [[ "$OS" == "debian" || "$OS" == "ubuntu" ]]; then
     sudo apt-get update
     sudo apt-get install -y git curl
   elif [[ "$OS" == "centos" || "$OS" == "fedora" ]]; then
     sudo yum install -y git curl
   else
-    echo -e "${RED}Unsupported OS. Please install Git and Curl manually.${NC}"
+    echo -e "${RED}${CROSS} Unsupported OS for automatic Git/Curl install.${NC}"
     exit 1
   fi
 }
 
 detect_os() {
-  if [[ -f /etc/os-release ]]; then
+  if [ -f /etc/os-release ]; then
     . /etc/os-release
     case "$ID" in
       debian|ubuntu) OS="debian" ;;
@@ -76,77 +90,75 @@ detect_os() {
 
 check_docker() {
   if check_command docker && docker version &>/dev/null; then
-    VERSION=$(docker version --format '{{.Server.Version}}')
-    echo -e "${GREEN}Docker version: $VERSION${NC}"
+    echo -e "${CHECK} Docker version: $(docker version --format '{{.Server.Version}}')"
     return 0
   fi
-  echo -e "${RED}Docker not found.${NC}"
+  echo -e "${RED}${CROSS} Docker not found.${NC}"
   return 1
 }
 
 check_docker_compose() {
   if check_command docker-compose; then
-    VERSION=$(docker-compose version --short)
-    echo -e "${GREEN}Docker Compose version: $VERSION${NC}"
+    echo -e "${CHECK} Docker Compose version: $(docker-compose version --short)"
     return 0
   elif docker compose version &>/dev/null; then
-    VERSION=$(docker compose version --short)
-    echo -e "${GREEN}Docker Compose (plugin) version: $VERSION${NC}"
+    echo -e "${CHECK} Docker Compose plugin version: $(docker compose version --short)"
     return 0
   fi
-  echo -e "${RED}Docker Compose not found.${NC}"
+  echo -e "${RED}${CROSS} Docker Compose not found.${NC}"
   return 1
 }
 
 check_docker_group() {
   local user=$1
   if id -nG "$user" | grep -qw docker; then
-    echo -e "${GREEN}$user is already in docker group.${NC}"
+    echo -e "${CHECK} $user is in the docker group."
     return 0
   else
-    echo -e "${YELLOW}$user is NOT in docker group.${NC}"
+    echo -e "${YELLOW}${CROSS} $user is NOT in the docker group.${NC}"
     return 1
   fi
 }
 
 add_user_to_docker_group() {
   local user=$1
-  echo -e "${YELLOW}▶ Adding $user to docker group…${NC}"
+  echo -e "${GEAR} Adding $user to docker group…"
   sudo usermod -aG docker "$user"
-  echo -e "${GREEN}User $user added to docker group. Please logout and login again.${NC}"
+  echo -e "${CHECK} User $user added. Please logout and login again."
 }
 
 clone_repo() {
+  print_section "${DOWNLOAD} Cloning Repository"
   if [[ -d "$REPO_DIR" ]]; then
-    echo -e "${YELLOW}Repository $REPO_DIR already exists — skipping clone.${NC}"
+    echo -e "${YELLOW}${INFO} Repository already exists — skipping clone.${NC}"
   else
-    echo -e "${YELLOW}▶ Cloning repository from $REPO_URL …${NC}"
     git clone "$REPO_URL"
   fi
 }
 
 create_config_dirs() {
-  echo -e "${YELLOW}▶ Creating configuration directories…${NC}"
+  print_section "${GEAR} Creating Configuration Directories"
   mkdir -p config/pihole config/unbound
 }
 
 prompt_env() {
-  echo -e "\n${YELLOW}▶ Creating .env file…${NC}"
+  print_section "${INFO} Generating .env Configuration"
 
-  echo -e "\n${GREEN}Example Configuration:${NC}"
-  echo -e "  Timezone:          Europe/Berlin"
-  echo -e "  Web Admin Password: admin"
-  echo -e "  Pi-hole Web Port:   80"
-  echo -e "  Domain Name:        local"
-  echo -e "  Hostname:           pihole"
+  echo -e "${CYAN}Example Configuration:${NC}"
+  echo -e "  🌍 Timezone:           Europe/Berlin"
+  echo -e "  🔐 Web Admin Password: admin"
+  echo -e "  🌐 Web Port:           80"
+  echo -e "  🏷️  Domain Name:        local"
+  echo -e "  💻 Hostname:           pihole"
 
-  read -rp "Use this example config? [Y/n]: " USE_EXAMPLE
+  echo -e "\n${YELLOW}${QUESTION}${ARROW} Use this example configuration? [Y/n]${NC}"
+  read -rp "> " USE_EXAMPLE
 
   if [[ "$USE_EXAMPLE" =~ ^[Nn]$ ]]; then
-    read -rp "Timezone (e.g. Europe/Berlin): " TZ
-    read -rp "Web admin password: " WEBPASSWORD
-    read -rp "Pi-hole Web Port (e.g. 80): " PIHOLE_WEBPORT
-    read -rp "Domain Name (e.g. local): " DOMAIN_NAME
+    echo -e "${YELLOW}${QUESTION}${ARROW} Timezone (e.g. Europe/Berlin):${NC}"; read -rp "> " TZ
+    echo -e "${YELLOW}${QUESTION}${ARROW} Web admin password:${NC}"; read -rp "> " WEBPASSWORD
+    echo -e "${YELLOW}${QUESTION}${ARROW} Pi-hole Web Port:${NC}"; read -rp "> " PIHOLE_WEBPORT
+    echo -e "${YELLOW}${QUESTION}${ARROW} Domain Name:${NC}"; read -rp "> " DOMAIN_NAME
     HOSTNAME="pihole"
   else
     TZ="Europe/Berlin"
@@ -163,56 +175,38 @@ PIHOLE_WEBPORT=$PIHOLE_WEBPORT
 HOSTNAME=$HOSTNAME
 DOMAIN_NAME=$DOMAIN_NAME
 EOF
+
+  echo -e "${CHECK} .env file created."
 }
 
-
 prompt_macvlan() {
-  echo -e "\n${YELLOW}▶ Detecting available network interfaces…${NC}"
+  print_section "${GEAR} Docker Macvlan Configuration"
 
-  # Get a list of physical (non-virtual, non-loopback) interfaces
-  interfaces=($(ip -o link show | awk -F': ' '{print $2}' | grep -vE 'lo|docker|veth|br-|virbr|vmnet|tun|tap'))
+  echo -e "${INFO} Available network interfaces:"
+  ip -o link show | awk -F': ' '{print "  - "$2}'
 
-  if [[ ${#interfaces[@]} -eq 0 ]]; then
-    echo -e "${RED}No valid network interfaces found.${NC}"
-    exit 1
-  fi
-
-  echo -e "\nAvailable interfaces:"
-  for i in "${!interfaces[@]}"; do
-    echo "  [$i] ${interfaces[$i]}"
-  done
-
-  read -rp "Select the interface number to use for macvlan: " iface_index
-
-  if ! [[ "$iface_index" =~ ^[0-9]+$ ]] || [[ "$iface_index" -ge "${#interfaces[@]}" ]]; then
-    echo -e "${RED}Invalid selection. Exiting.${NC}"
-    exit 1
-  fi
-
-  MACVLAN_PARENT="${interfaces[$iface_index]}"
-  echo -e "${GREEN}Selected interface: $MACVLAN_PARENT${NC}"
-
-  read -rp "Subnet for macvlan (e.g. 192.168.10.0/24): " MACVLAN_SUBNET
-  read -rp "Gateway for macvlan (e.g. 192.168.10.1): " MACVLAN_GATEWAY
-  read -rp "IP address for Pi-hole container (e.g. 192.168.10.50): " PIHOLE_IP
+  echo -e "\n${YELLOW}${QUESTION}${ARROW} Choose parent interface (e.g. eth0):${NC}"; read -rp "> " MACVLAN_PARENT
+  echo -e "${YELLOW}${QUESTION}${ARROW} Subnet (e.g. 192.168.10.0/24):${NC}"; read -rp "> " MACVLAN_SUBNET
+  echo -e "${YELLOW}${QUESTION}${ARROW} Gateway (e.g. 192.168.10.1):${NC}"; read -rp "> " MACVLAN_GATEWAY
+  echo -e "${YELLOW}${QUESTION}${ARROW} Pi-hole IP (e.g. 192.168.10.50):${NC}"; read -rp "> " PIHOLE_IP
 }
 
 create_macvlan_network() {
-  echo -e "\n${YELLOW}▶ Creating Docker macvlan network if not exists…${NC}"
+  print_section "${GEAR} Creating Docker macvlan network"
   if ! docker network ls --format '{{.Name}}' | grep -q "^pihole_macvlan$"; then
     docker network create -d macvlan \
       --subnet=${MACVLAN_SUBNET} \
       --gateway=${MACVLAN_GATEWAY} \
       -o parent=${MACVLAN_PARENT} \
       pihole_macvlan
-    echo -e "${GREEN}macvlan network 'pihole_macvlan' created.${NC}"
+    echo -e "${CHECK} macvlan network 'pihole_macvlan' created."
   else
-    echo -e "${YELLOW}macvlan network 'pihole_macvlan' already exists — skipping.${NC}"
+    echo -e "${INFO} macvlan network already exists — skipping."
   fi
 }
 
 generate_compose() {
-  echo -e "\n${YELLOW}▶ Creating docker-compose.yaml…${NC}"
+  print_section "${INFO} Creating docker-compose.yaml"
   cat > docker-compose.yaml <<EOF
 version: "3.8"
 services:
@@ -247,43 +241,38 @@ EOF
 }
 
 start_containers() {
-  echo -e "\n${YELLOW}▶ Starting Docker containers…${NC}"
+  print_section "${GEAR} Starting Docker containers"
   docker-compose up -d
 }
 
 print_success() {
-  echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${GREEN}🎉 Pi-hole Web Interface is ready!${NC}"
-  echo -e "\n→ Open in browser: http://${PIHOLE_IP}:${PIHOLE_WEBPORT}"
-  echo -e "\n📍 Login Password: (set in .env)"
-  echo -e "\n🛠️ Configuration Info:"
-  echo -e "   - Web UI: Pi-hole settings and DHCP"
-  echo -e "   - Unbound config: ./config/unbound/unbound.conf"
-  echo -e "\n💡 Tip: Restart containers with:"
-  echo -e "   docker-compose restart"
-  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+  echo -e "\n${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${CHECK} Pi-hole Web Interface is ready!"
+  echo -e "Open in browser: http://${PIHOLE_IP}:${PIHOLE_WEBPORT}"
+  echo -e "Login Password: (see .env)"
+  echo -e "Config: ./config/unbound/unbound.conf"
+  echo -e "Restart: docker-compose restart"
+  echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
 main() {
   print_header
   detect_os
-  if ! check_command docker || ! check_docker; then
-    install_docker
-  fi
-  if ! check_command docker-compose && ! docker compose version &>/dev/null; then
-    install_docker_compose
-  fi
-  if ! check_command git || ! check_command curl; then
-    install_git_curl
-  fi
+
+  if ! check_command docker || ! check_docker; then install_docker; fi
+  if ! check_command docker-compose || ! check_docker_compose; then install_docker_compose; fi
+  if ! check_command git || ! check_command curl; then install_git_curl; fi
+
   CURRENT_USER=$(whoami)
   if ! check_docker_group "$CURRENT_USER"; then
     add_user_to_docker_group "$CURRENT_USER"
-    echo -e "${YELLOW}Please logout and login again, then rerun the script.${NC}"
+    echo -e "${YELLOW}${INFO} Please logout and login again, then rerun the script.${NC}"
     exit 0
   fi
+
   clone_repo
   cd "$REPO_DIR"
+
   create_config_dirs
   prompt_env
   prompt_macvlan
