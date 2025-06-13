@@ -11,7 +11,7 @@ NC='\033[0m'
 CHECK="\xE2\x9C\x85"     # ✅
 CROSS="\xE2\x9D\x8C"     # ❌
 QUESTION="\xE2\x9D\x93"  # ❓
-ARROW="\xE2\x9E\xA1"     # ➡️
+="\xE2\x9E\xA1"     # ➡️
 INFO="\xF0\x9F\x93\x84"   # 📄
 GEAR="\xF0\x9F\x94\xA7"   # 🔧
 DOWNLOAD="\xF0\x9F\x93\xA6" # 📦
@@ -31,7 +31,7 @@ print_header() {
   echo -e "  - Create .env and docker-compose.yaml"
   echo -e "  - Setup Docker macvlan network"
   echo -e "  - Launch Pi-hole + Unbound using Docker"
-  echo -e "\n${QUESTION}${ARROW} Press [Enter] to begin..."
+  echo -e "\n${QUESTION}${} Press [Enter] to begin..."
   read -r _
 }
 
@@ -151,14 +151,14 @@ prompt_env() {
   echo -e "  🏷️  Domain Name:        local"
   echo -e "  💻 Hostname:           pihole"
 
-  echo -e "\n${YELLOW}${QUESTION}${ARROW} Use this example configuration? [Y/n]${NC}"
+  echo -e "\n${YELLOW}${QUESTION}${} Use this example configuration? [Y/n]${NC}"
   read -rp "> " USE_EXAMPLE
 
   if [[ "$USE_EXAMPLE" =~ ^[Nn]$ ]]; then
-    echo -e "${YELLOW}${QUESTION}${ARROW} Timezone (e.g. Europe/Berlin):${NC}"; read -rp "> " TZ
-    echo -e "${YELLOW}${QUESTION}${ARROW} Web admin password:${NC}"; read -rp "> " WEBPASSWORD
-    echo -e "${YELLOW}${QUESTION}${ARROW} Pi-hole Web Port:${NC}"; read -rp "> " PIHOLE_WEBPORT
-    echo -e "${YELLOW}${QUESTION}${ARROW} Domain Name:${NC}"; read -rp "> " DOMAIN_NAME
+    echo -e "${YELLOW}${QUESTION}${} Timezone (e.g. Europe/Berlin):${NC}"; read -rp "> " TZ
+    echo -e "${YELLOW}${QUESTION}${} Web admin password:${NC}"; read -rp "> " WEBPASSWORD
+    echo -e "${YELLOW}${QUESTION}${} Pi-hole Web Port:${NC}"; read -rp "> " PIHOLE_WEBPORT
+    echo -e "${YELLOW}${QUESTION}${} Domain Name:${NC}"; read -rp "> " DOMAIN_NAME
     HOSTNAME="pihole"
   else
     TZ="Europe/Berlin"
@@ -185,10 +185,10 @@ prompt_macvlan() {
   echo -e "${INFO} Available network interfaces:"
   ip -o link show | awk -F': ' '{print "  - "$2}'
 
-  echo -e "\n${YELLOW}${QUESTION}${ARROW} Choose parent interface (e.g. eth0):${NC}"; read -rp "> " MACVLAN_PARENT
-  echo -e "${YELLOW}${QUESTION}${ARROW} Subnet (e.g. 192.168.10.0/24):${NC}"; read -rp "> " MACVLAN_SUBNET
-  echo -e "${YELLOW}${QUESTION}${ARROW} Gateway (e.g. 192.168.10.1):${NC}"; read -rp "> " MACVLAN_GATEWAY
-  echo -e "${YELLOW}${QUESTION}${ARROW} Pi-hole IP (e.g. 192.168.10.50):${NC}"; read -rp "> " PIHOLE_IP
+  echo -e "\n${YELLOW}${QUESTION}${} Choose parent interface (e.g. eth0):${NC}"; read -rp "> " MACVLAN_PARENT
+  echo -e "${YELLOW}${QUESTION}${} Subnet (e.g. 192.168.10.0/24):${NC}"; read -rp "> " MACVLAN_SUBNET
+  echo -e "${YELLOW}${QUESTION}${} Gateway (e.g. 192.168.10.1):${NC}"; read -rp "> " MACVLAN_GATEWAY
+  echo -e "${YELLOW}${QUESTION}${} Pi-hole IP (e.g. 192.168.10.50):${NC}"; read -rp "> " PIHOLE_IP
 }
 
 create_macvlan_network() {
