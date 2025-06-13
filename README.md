@@ -1,139 +1,98 @@
-# Pi-hole with Unbound Docker Setup
+# Pi-hole + Unbound Auto-Installer
 
-This repository provides a simple, interactive installer script and Docker Compose configuration to run Pi-hole with built-in DHCP and Unbound as a local DNS resolver. The setup uses the `mpgirro/pihole-unbound` image and host networking for maximum compatibility.
+This project is an automatic installer script based on the repository [mpgirro/docker-pihole-unbound](https://github.com/mpgirro/docker-pihole-unbound).
+
+It sets up Pi-hole with the Unbound DNS resolver as Docker containers and automates the installation of all required components.
+
+---
 
 ## Features
 
-- **Interactive Installer (**\`\`**)**
-
-  - Creates necessary configuration directories
-  - Downloads `root.hints` and initializes `root.key` for Unbound
-  - Generates a basic `unbound.conf` and opens it for review
-  - Prompts for key environment variables and writes to `.env`
-  - Writes a ready-to-use `docker-compose.yaml`
-
-- **Pi-hole**
-
-  - DNS server with built-in DHCP support
-  - Web interface for administration
-  - Customizable theme, port, and password via environment variables
-
-- **Unbound**
-
-  - Local, caching DNS resolver with DNSSEC support
-  - Automatically fetches root zone hints and trust anchors
+- Automatic installation of Docker & Docker Compose  
+- Installation of Git and Curl if needed  
+- Clones the original repository `mpgirro/docker-pihole-unbound`  
+- Creates `.env` and `docker-compose.yaml` files  
+- Sets up a Docker macvlan network  
+- Launches Pi-hole + Unbound as Docker containers  
+- Supports Pi-hole’s DHCP server functionality  
 
 ---
 
-## 📦 Features
+## Requirements
 
-- Automatically installs:
-  - Docker & Docker Compose
-  - Git & Curl
-- Optionally adds the user to the `docker` group
-- Clones the necessary repository
-- Creates a `.env` file with either example or custom values
-- Generates `docker-compose.yaml`
-- Optionally opens `unbound.conf` for editing
-- Runs Pi-hole in host network mode with DHCP enabled
-- Compatible with Raspberry Pi, Debian, Ubuntu, Fedora, Alpine, and more
+- Linux system (tested on Debian, Ubuntu, CentOS, Fedora)  
+- `bash` and `sudo` privileges  
+- A physical network interface for macvlan (e.g., `eth0`)  
 
 ---
 
-## ✅ Quick Start (1-liner)
+## Installation
 
-Run the entire setup with a single command:
+### Option 1: Clone and run locally
 
-```bash
-bash <(curl -sL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install.sh)
-```
----
-
-## 🛠️ Manual Installation via `git clone`
-
-If you prefer to clone the repository manually and run the script:
-
-### 1. Clone the repository
-
+1. Clone this repository:  
 ```bash
 git clone https://github.com/sakis-tech/docker-pihole-unbound.git
 cd docker-pihole-unbound
 ```
 
-### 2. Run the installer
-
+2. Make the install script executable and run it:
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-The script will:
+### Option 2: Run as one-liner (direct execution)
 
-* Detect your OS
-* Install any required dependencies
-* Prompt for environment configuration
-* Generate `.env` and `docker-compose.yaml`
-* Launch the Pi-hole + Unbound stack via Docker
+You can run the installer directly wget without cloning the repo:
+```bash
+bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install.sh)"
+```
+Follow the prompts:
+* Choose between example config or custom settings
+* Provide macvlan network details (parent interface, subnet, gateway, container IP)
+* Once complete, access Pi-hole at the configured IP address and port.
+---
+
+## Accessing the Web Interface
+
+* URL: `http://<Pi-hole-IP>:<Web-Port>`
+* Default web password (if example config used): `admin`
 
 ---
 
-During the installation, you will be prompted to enter:
+## Directory Structure
 
-- **Hostname** for the Docker container
-- **Domain name** (optional)
-- **Time zone** (e.g., `Europe/Berlin`)
-- **Web admin password** for Pi-hole
-- **Web UI theme** (defaults to `default-light`)
-- **Web UI port** (defaults to `80`)
+* `config/pihole` – Pi-hole configuration and data
+* `config/unbound` – Unbound resolver configuration
 
-After completion, you will have a `.env` file and a `docker-compose.yaml` ready to use.
+---
 
-## Running the Stack
+## Docker Network
 
-Start the services in detached mode:
+The script creates a Docker macvlan network named `pihole_macvlan` to allow the Pi-hole container to appear as a separate host on your network.
 
-```bash
-docker-compose up -d
-```
+---
 
-You can monitor the logs:
+## Tips
 
-```bash
-docker-compose logs -f
-```
+* Restart containers after configuration changes:
 
-Access the Pi-hole Web interface at `http://<host-ip>:<PIHOLE_WEBPORT>`.
+  ```bash
+  docker-compose restart
+  ```
 
-## Customization
+* If your user is added to the Docker group, log out and back in before rerunning the script.
 
-- **Updating Unbound Configuration**
+---
 
-  - Edit `config/unbound/unbound.conf` to adjust Unbound settings.
-  - After changes, restart the container:
-    ```bash
-    docker-compose restart pihole-unbound
-    ```
+## License
 
-- **Adding Block Lists / Custom DNS Rules**
+MIT
 
-  - Use the Pi-hole web interface under **Group Management** → **Adlists**.
+---
 
-- **DHCP Settings**
+## Note
 
-  - Enable or adjust DHCP settings via the Pi-hole web interface under **Settings** → **DHCP**.
+This script is intended for personal use. Please verify your network settings and security configurations before using in production.
 
-## Updating
-
-If a new version of `mpgirro/pihole-unbound` is released:
-
-```bash
-docker-compose pull
-docker-compose up -d
-```
-
-## Troubleshooting
-
-- Ensure `unbound-anchor` ran without errors and `root.key` exists.
-- Verify correct file permissions for `config/unbound` directory.
-- Check Docker logs for errors:
-- docker logs pihole-unbound
