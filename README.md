@@ -1,62 +1,114 @@
-# Pi-hole + Unbound on Docker
+# Pi-hole with Unbound Docker Setup
 
-A Docker image for running [Pi-hole](https://pi-hole.net) with integrated [Unbound](https://nlnetlabs.nl/projects/unbound/about/) DNS resolver in a single container.
-
-This is the official and maintained successor repository of the original `cbcrowe/pihole-unbound` image by [@chriscrowe](https://github.com/chriscrowe)
-
-## BREAKING CHANGE!
-
-**TL;DR**: The image changed. `chriscrowe/pihole-unbound` is deprecated and no longer receives updates. Change your setup to use the new image `mpgirro/pihole-unbound`.
-
-## Overview
-
-The base image for the container is the [official Pi-Hole container](https://hub.docker.com/r/pihole/pihole), with an extra build step added to install the Unbound resolver directly into to the container based on [instructions provided directly by the Pi-Hole team](https://docs.pi-hole.net/guides/unbound/).
+This repository provides a simple, interactive installer script and Docker Compose configuration to run Pi-hole with built-in DHCP and Unbound as a local DNS resolver. The setup uses the `mpgirro/pihole-unbound` image and host networking for maximum compatibility.
 
 ## Features
 
-- **Automated Builds**: The Docker image is automatically built and published using [GitHub Actions](https://docs.github.com/en/actions) and [Renovate](https://docs.renovatebot.com/), ensuring you always have access to the latest version.
-- **Unbound integration**: The Unbound DNS resolver is directly integrated and configured within this image. No need for setting up and linking a separate Unbound container.
-- **Multi-Registry Publishing**: Images are published to both [Docker Hub](https://hub.docker.com/repository/docker/mpgirro/pihole-unbound) and [GitHub Container Registry (GHCR)](https://github.com/mpgirro/docker-pihole-unbound/pkgs/container/docker-pihole-unbound), giving you flexibility in where you pull your images from.
-- **Consistent Tagging**: Images are tagged with the same version tags as the [official Pi-hole images](https://github.com/pi-hole/docker-pi-hole).
+- **Interactive Installer (**\`\`**)**
 
-## Usage
+  - Creates necessary configuration directories
+  - Downloads `root.hints` and initializes `root.key` for Unbound
+  - Generates a basic `unbound.conf` and opens it for review
+  - Prompts for key environment variables and writes to `.env`
+  - Writes a ready-to-use `docker-compose.yaml`
 
-The [example Docker Compose file](example/compose.yaml) demonstrates how this image can be used.
+- **Pi-hole**
 
-**Important**: If you have an old setup using `cbcrowe/pihole-unbound`, you need to migrate to one of the image locations mentioned below.
+  - DNS server with built-in DHCP support
+  - Web interface for administration
+  - Customizable theme, port, and password via environment variables
 
-### Image Locations
+- **Unbound**
 
-- [Docker Hub](https://hub.docker.com/repository/docker/mpgirro/pihole-unbound): `docker pull mpgirro/pihole-unbound`
-- [GitHub Container Registry](https://github.com/mpgirro/docker-pihole-unbound/pkgs/container/docker-pihole-unbound): `docker pull ghcr.io/mpgirro/docker-pihole-unbound`
+  - Local, caching DNS resolver with DNSSEC support
+  - Automatically fetches root zone hints and trust anchors
 
-### Configuration Options
+## Prerequisites
 
-You can use all environment variables supported by the official Pi-hole container. Some examples are listed below. Vars and descriptions are replicated from the [official documentation](https://github.com/pi-hole/docker-pi-hole/blob/master/README.md#recommended-environment-variables):
+- Docker & Docker Compose installed on your host
+- Unix-like shell environment (Linux, macOS, WSL)
+- `curl` and `unbound-anchor` available on the system running the installer script
 
-| Variable | Default | Value | Description |
-| -------- | ------- | ----- | ---------- |
-| `TZ` | UTC | `<Timezone>` | Set your [timezone](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) to make sure logs rotate at local midnight instead of at UTC midnight.
-| `FTLCONF_webserver_api_password` | random | `<Admin password>` | <http://pi.hole/admin> password.<br>Run `docker logs pihole \| grep random` to find your random password.
-| `FTLCONF_dns_upstreams` | `127.0.0.1#5335` | IPs delimited by `;` | Upstream DNS server(s) for Pi-hole to forward queries to, separated by a semicolon.<br><br>Supports non-standard ports with: `#[port number]`, e.g `127.0.0.1#5053;8.8.8.8;8.8.4.4`.<br><br>Supports [Docker service names and links](https://docs.docker.com/compose/networking/) instead of IPs, e.g `upstream0,upstream1` where `upstream0` and `upstream1` are the service names of or links to docker services.<br><br>**Note:** The existence of this environment variable assumes this as the _sole_ management of upstream DNS. Upstream DNS added via the web interface will be overwritten on container restart/recreation. |
-| `FTLCONF_[SETTING]` | unset | As per documentation | Customize pihole.toml with settings described in the [API Documentation](https://docs.pi-hole.net/api).<br><br>Replace `.` with `_`, e.g for `dns.dnssec=true` use `FTLCONF_dns_dnssec: 'true'`.<br/>Array type configs should be delimited with `;`.|
+## Repository Structure
 
-Alternatively you can use an `.env` file in the same directory as your `compose.yaml` file:
-
+```text
+├── install.sh           # Interactive installer script
+├── docker-compose.yaml  # Generated Compose file (do not edit directly)
+├── .env                 # Generated environment variables file
+└── config/
+    └── unbound/
+        ├── root.hints   # Root zone hints for Unbound
+        ├── root.key     # DNSSEC trust anchor
+        └── unbound.conf # Unbound configuration (editable)
 ```
-TZ=America/Los_Angeles
-WEBPASSWORD=ChangeMe!
-HOSTNAME=pihole
-DOMAIN_NAME=pihole.local
-PIHOLE_WEBPORT=80
-WEBTHEME=default-light
-WEB_PORT=80
+
+## Installation
+
+```bash
+# Make the installer executable
+chmod +x install.sh
+
+# Run the installer
+./install.sh
 ```
 
-## Filing Issues
+During the installation, you will be prompted to enter:
 
-Please file issues as follows:
+- **Hostname** for the Docker container
+- **Domain name** (optional)
+- **Time zone** (e.g., `Europe/Berlin`)
+- **Web admin password** for Pi-hole
+- **Web UI theme** (defaults to `default-light`)
+- **Web UI port** (defaults to `80`)
 
-- Pi-hole: For issues related to Pi-hole itself, please report them directly in the [Pi-hole repository](https://github.com/pi-hole/pi-hole/issues).
-- Unbound: For issues related to the Unbound DNS resolver, please use the [Unbound repository](https://github.com/NLnetLabs/unbound/issues).
-- Image Publishing: For issues specifically related to the image publishing (e.g., missing tags, images not being updated or published correctly), report them here in this repository.
+After completion, you will have a `.env` file and a `docker-compose.yaml` ready to use.
+
+## Running the Stack
+
+Start the services in detached mode:
+
+```bash
+docker-compose up -d
+```
+
+You can monitor the logs:
+
+```bash
+docker-compose logs -f
+```
+
+Access the Pi-hole Web interface at `http://<host-ip>:<PIHOLE_WEBPORT>`.
+
+## Customization
+
+- **Updating Unbound Configuration**
+
+  - Edit `config/unbound/unbound.conf` to adjust Unbound settings.
+  - After changes, restart the container:
+    ```bash
+    docker-compose restart pihole-unbound
+    ```
+
+- **Adding Block Lists / Custom DNS Rules**
+
+  - Use the Pi-hole web interface under **Group Management** → **Adlists**.
+
+- **DHCP Settings**
+
+  - Enable or adjust DHCP settings via the Pi-hole web interface under **Settings** → **DHCP**.
+
+## Updating
+
+If a new version of `mpgirro/pihole-unbound` is released:
+
+```bash
+docker-compose pull
+docker-compose up -d
+```
+
+## Troubleshooting
+
+- Ensure `unbound-anchor` ran without errors and `root.key` exists.
+- Verify correct file permissions for `config/unbound` directory.
+- Check Docker logs for errors:
+- docker logs pihole-unbound
