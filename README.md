@@ -23,34 +23,59 @@ This repository provides a simple, interactive installer script and Docker Compo
   - Local, caching DNS resolver with DNSSEC support
   - Automatically fetches root zone hints and trust anchors
 
-## Prerequisites
+---
 
-- Docker & Docker Compose installed on your host
-- Unix-like shell environment (Linux, macOS, WSL)
-- `curl` and `unbound-anchor` available on the system running the installer script
+## 📦 Features
 
-## Repository Structure
+- Automatically installs:
+  - Docker & Docker Compose
+  - Git & Curl
+- Optionally adds the user to the `docker` group
+- Clones the necessary repository
+- Creates a `.env` file with either example or custom values
+- Generates `docker-compose.yaml`
+- Optionally opens `unbound.conf` for editing
+- Runs Pi-hole in host network mode with DHCP enabled
+- Compatible with Raspberry Pi, Debian, Ubuntu, Fedora, Alpine, and more
 
-```text
-├── install.sh           # Interactive installer script
-├── docker-compose.yaml  # Generated Compose file (do not edit directly)
-├── .env                 # Generated environment variables file
-└── config/
-    └── unbound/
-        ├── root.hints   # Root zone hints for Unbound
-        ├── root.key     # DNSSEC trust anchor
-        └── unbound.conf # Unbound configuration (editable)
-```
+---
 
-## Installation
+## ✅ Quick Start (1-liner)
+
+Run the entire setup with a single command:
 
 ```bash
-# Make the installer executable
-chmod +x install.sh
+bash <(curl -sL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install.sh)
+```
+---
 
-# Run the installer
+## 🛠️ Manual Installation via `git clone`
+
+If you prefer to clone the repository manually and run the script:
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/sakis-tech/docker-pihole-unbound.git
+cd docker-pihole-unbound
+```
+
+### 2. Run the installer
+
+```bash
+chmod +x install.sh
 ./install.sh
 ```
+
+The script will:
+
+* Detect your OS
+* Install any required dependencies
+* Prompt for environment configuration
+* Generate `.env` and `docker-compose.yaml`
+* Launch the Pi-hole + Unbound stack via Docker
+
+---
 
 During the installation, you will be prompted to enter:
 
