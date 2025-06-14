@@ -52,6 +52,21 @@ bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-
 
 ---
 
+## Secure Unbound Setup
+
+After Pi‑hole + Unbound are running, lock down your resolver with DNSSEC, root hints & trust anchor—all inside the container.
+One‑Liner Secure‑Setup
+
+```bash
+bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-unbound-secure.sh)"
+```
+
+This script will:
+
+* Download the latest root hints & DNSSEC trust anchor into the container
+* Patch your Unbound include file (pi-hole.conf) to enable DNSSEC, harden glue, and point at the new files
+* Restart Unbound inside pihole-unbound
+
 ## Directory Structure
 
 * `config/pihole` – Pi-hole configuration and data
