@@ -231,7 +231,7 @@ services:
       - FTLCONF_webserver_interface_theme=\${WEBTHEME}
       - FTLCONF_dns_upstreams=127.0.0.1#5335
       - FTLCONF_dns_listeningMode=all
-      - FTLCONF_dns_domain:\${DOMAIN_NAME}
+      - FTLCONF_dns_domain=\${DOMAIN_NAME}
       - FTLCONF_webserver_port=\${PIHOLE_WEBPORT}
     volumes:
       - ./config/pihole:/etc/pihole:rw
