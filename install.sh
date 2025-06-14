@@ -236,6 +236,8 @@ services:
     volumes:
       - ./config/pihole:/etc/pihole:rw
       - ./config/pihole:/etc/dnsmasq.d:rw
+      - ./config/unbound:/etc/unbound/unbound.conf.d:rw
+      - ./logs/unbound:/var/log/unbound:rw
     restart: unless-stopped
 
 networks:
