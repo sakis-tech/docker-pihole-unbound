@@ -213,7 +213,6 @@ create_macvlan_network() {
 generate_compose() {
   echo -e "${YELLOW}📝 Generating docker-compose.yaml…${NC}"
   cat > docker-compose.yaml <<EOF
-version: "3.8"
 services:
   pihole-unbound:
     container_name: pihole-unbound
