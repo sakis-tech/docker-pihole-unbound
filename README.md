@@ -28,23 +28,9 @@ It sets up Pi-hole with the Unbound DNS resolver as Docker containers and automa
 
 ## Installation
 
-### Option 1: Clone and run locally
+### Run as one-liner (direct execution)
 
-1. Clone this repository:  
-```bash
-git clone https://github.com/sakis-tech/docker-pihole-unbound.git
-cd docker-pihole-unbound
-```
-
-2. Make the install script executable and run it:
-```bash
-chmod +x install.sh
-./install.sh
-```
-
-### Option 2: Run as one-liner (direct execution)
-
-You can run the installer directly wget without cloning the repo:
+You must run the installer directly wget without cloning the repo:
 ```bash
 bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install.sh)"
 ```
