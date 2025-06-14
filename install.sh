@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ─────────────────────────────────────────────────────────────
-# 🌐 Pi-hole + Unbound Auto‑Installer
-# ─────────────────────────────────────────────────────────────
-
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -17,11 +13,11 @@ REPO_DIR="docker-pihole-unbound"
 
 print_header() {
   clear
-  echo -e "${GREEN}─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${GREEN}  🚀 Pi-hole + Unbound Auto‑Installer                         ${NC}"
-  echo -e "${GREEN}─────────────────────────────────────────────────────────────${NC}"
-  echo -e "This script will automatically:\n- Install Docker & Docker Compose\n- Install Git & Curl\n- Clone the project\n- Create .env and docker-compose.yaml\n- Setup Docker macvlan network\n- Launch Pi-hole + Unbound using Docker"
-  echo -e "\n➡️  Press [Enter] to begin..."
+  echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
+  echo -e "${BLUE}  🚀 Pi-hole + Unbound Auto‑Installer                         ${NC}"
+  echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
+  echo -e "${GREEN}This script will automatically:\n${NC}- ${YELLOW}Install Docker & Docker Compose\n${NC}- ${YELLOW}Install Git & Curl\n${NC}- ${YELLOW}Clone the project\n${NC}- ${YELLOW}Create .env and docker-compose.yaml\n${NC}- ${YELLOW}Setup Docker macvlan network\n${NC}- ${YELLOW}Launch Pi-hole + Unbound using Docker${NC}"
+  echo -e "${GREEN}Press [Enter] to begin...${NC}"
   read -r _
 }
 
@@ -127,23 +123,33 @@ prompt_env() {
   echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
   echo -e "📄 .env Configuration"
   echo -e "─────────────────────────────────────────────────────────────${NC}"
-  echo -e "\nExample Configuration:\n  • Timezone: Europe/Berlin\n  • Web Password: admin\n  • Web Port: 80\n  • Domain: local\n  • Web Theme: default-dark\n  • Hostname: pihole"
+  echo -e "${YELLOW}Example Configuration:\n${NC}  • ${GREEN}Timezone: Europe/Berlin\n${NC}  • ${GREEN}Web Password: admin\n${NC}  • ${GREEN}Web Port: 80\n${NC}  • ${GREEN}Domain: local\n${NC}  • ${GREEN}Web Theme: default-dark\n${NC}  • ${GREEN}Hostname: pihole\n${NC}  • ${GREEN}Pihole static IP (e.g. 192.168.10.50)${NC}"
 
-  read -rp "\n❓ Use example config? [Y/n]: " USE_EXAMPLE
+  echo -e "\n${YELLOW}❓ Use example config? [Y/n]: ${NC}\c"
+  read -r USE_EXAMPLE
+
   if [[ "$USE_EXAMPLE" =~ ^[Nn]$ ]]; then
-    read -rp "Timezone (e.g. Europe/Berlin): " TZ
-    read -rp "Web admin password: " WEBPASSWORD
-    read -rp "Web port: " PIHOLE_WEBPORT
-    read -rp "Domain name (e.g. local): " DOMAIN_NAME
-    read -rp "Web theme (default-dark or default-light): " WEBTHEME
-    read -rp "Hostname (e.g. pihole): " HOSTNAME
+    echo -ne "${GREEN}Timezone (e.g. Europe/Berlin): ${NC}"
+	read -r TZ
+	echo -ne "${GREEN}Web admin password: ${NC}"
+	read -r WEBPASSWORD
+	echo -ne "${GREEN}Web port: ${NC}"
+	read -r PIHOLE_WEBPORT
+	echo -ne "${GREEN}Domain name (e.g. local): ${NC}"
+	read -r DOMAIN_NAME
+	echo -ne "${GREEN}Web theme (default-dark or default-light): ${NC}"
+	read -r WEBTHEME
+	echo -ne "${GREEN}Hostname (e.g. pihole): ${NC}"
+	read -r HOSTNAME
+	echo -ne "${GREEN}Pihole static IP (e.g. 192.168.10.50): ${NC}"
+	read -r PIHOLE_IP
   else
-    TZ="Europe/Berlin"
-    WEBPASSWORD="admin"
-    PIHOLE_WEBPORT="80"
-    DOMAIN_NAME="local"
-    WEBTHEME="default-dark"
-    HOSTNAME="pihole"
+	TZ="Europe/Berlin"
+	WEBPASSWORD="admin"
+	PIHOLE_WEBPORT="80"
+	DOMAIN_NAME="local"
+	WEBTHEME="default-dark"
+	HOSTNAME="pihole"
   fi
 
   cat > .env <<EOF
@@ -153,6 +159,7 @@ PIHOLE_WEBPORT=$PIHOLE_WEBPORT
 DOMAIN_NAME=$DOMAIN_NAME
 WEBTHEME=$WEBTHEME
 HOSTNAME=$HOSTNAME
+PIHOLE_IP=$PIHOLE_IP
 EOF
 }
 
@@ -160,13 +167,22 @@ prompt_macvlan() {
   echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
   echo -e "🔌 Docker Macvlan Configuration"
   echo -e "─────────────────────────────────────────────────────────────${NC}"
-  echo -e "Available network interfaces:"
+  echo -e "${GREEN}Available network interfaces:${NC}"
   ip -o link show | awk -F': ' '{print "  • "$2}' | grep -vE "lo|docker"
-  read -rp "\n❓ Select parent interface for macvlan (e.g. eth0): " MACVLAN_PARENT
-  read -rp "Subnet (e.g. 192.168.10.0/24): " MACVLAN_SUBNET
-  read -rp "Gateway (e.g. 192.168.10.1): " MACVLAN_GATEWAY
-  read -rp "Pi-hole IP (e.g. 192.168.10.50): " PIHOLE_IP
+
+  echo -ne "\n${YELLOW}❓ Select parent interface for macvlan (e.g. eth0): ${NC}"
+  read -r MACVLAN_PARENT
+
+  echo -ne "${YELLOW}❓ Subnet (e.g. 192.168.10.0/24): ${NC}"
+  read -r MACVLAN_SUBNET
+
+  echo -ne "${YELLOW}❓ Gateway (e.g. 192.168.10.1): ${NC}"
+  read -r MACVLAN_GATEWAY
+
+  echo -ne "${YELLOW}❓ Pi-hole IP (e.g. 192.168.10.50): ${NC}"
+  read -r PIHOLE_IP
 }
+
 
 create_macvlan_network() {
   echo -e "\n${YELLOW}⚙️  Creating macvlan network if it does not exist…${NC}"
@@ -183,7 +199,7 @@ create_macvlan_network() {
 }
 
 generate_compose() {
-  echo -e "\n${YELLOW}📝 Generating docker-compose.yaml…${NC}"
+  echo -e "${YELLOW}📝 Generating docker-compose.yaml…${NC}"
   cat > docker-compose.yaml <<EOF
 version: "3.8"
 services:
@@ -218,16 +234,18 @@ EOF
 }
 
 start_containers() {
-  echo -e "\n${YELLOW}🚀 Starting Docker containers…${NC}"
+  echo -e "${YELLOW}🚀 Starting Docker containers…${NC}"
   docker-compose up -d
 }
 
 print_success() {
-  echo -e "\n${GREEN}🎉 Pi-hole is now running!${NC}"
-  echo -e "\n➡️  Access: http://\${PIHOLE_IP}:\${PIHOLE_WEBPORT}"
-  echo -e "🔑 Login Password: Set in .env"
-  echo -e "📁 Unbound config: ./config/unbound/unbound.conf"
-  echo -e "🔁 Restart with: docker-compose restart"
+  echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
+  echo -e "🎉 Pi-hole is now running!"
+  echo -e "─────────────────────────────────────────────────────────────${NC}"
+  echo -e "${GREEN}\n➡️  Access:${NC} ${YELLOW}http://${PIHOLE_IP}:${PIHOLE_WEBPORT}${NC}"
+  echo -e "${GREEN}🔑 Login Password:${NC} ${YELLOW}Set in .env${NC}"
+  echo -e "${GREEN}📁 Unbound config:${NC} ${YELLOW}./config/unbound/unbound.conf${NC}"
+  echo -e "${GREEN}🔁 Restart with:${NC} ${YELLOW}docker-compose restart${NC}\n"
 }
 
 main() {
