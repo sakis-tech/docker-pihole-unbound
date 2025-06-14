@@ -119,6 +119,18 @@ create_config_dirs() {
   mkdir -p config/pihole config/unbound
 }
 
+download_unbound_conf() {
+  echo -e "${YELLOW}⬇️  Downloading unbound-pihole.conf…${NC}"
+  curl -fsSL https://raw.githubusercontent.com/mpgirro/docker-pihole-unbound/main/docker/unbound-pihole.conf -o ./config/unbound/unbound-pihole.conf
+  if [[ $? -eq 0 ]]; then
+    echo -e "${GREEN}✅ unbound-pihole.conf downloaded successfully.${NC}"
+  else
+    echo -e "${RED}❌ Failed to download unbound-pihole.conf.${NC}"
+    exit 1
+  fi
+}
+
+
 prompt_env() {
   echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
   echo -e "📄 .env Configuration"
@@ -244,7 +256,7 @@ print_success() {
   echo -e "─────────────────────────────────────────────────────────────${NC}"
   echo -e "${GREEN}\n➡️  Access:${NC} ${YELLOW}http://${PIHOLE_IP}:${PIHOLE_WEBPORT}${NC}"
   echo -e "${GREEN}🔑 Login Password:${NC} ${YELLOW}Set in .env${NC}"
-  echo -e "${GREEN}📁 Unbound config:${NC} ${YELLOW}./config/unbound/unbound.conf${NC}"
+  echo -e "${GREEN}📁 Unbound config:${NC} ${YELLOW}./config/unbound/unbound-pihole.conf${NC}"
   echo -e "${GREEN}🔁 Restart with:${NC} ${YELLOW}docker-compose restart${NC}\n"
 }
 
@@ -266,6 +278,7 @@ main() {
   clone_repo
   cd "$REPO_DIR"
   create_config_dirs
+  download_unbound_conf
   prompt_env
   prompt_macvlan
   create_macvlan_network
