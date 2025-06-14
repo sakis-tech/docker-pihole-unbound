@@ -237,9 +237,6 @@ services:
       - ./config/pihole:/etc/pihole:rw
       - ./config/pihole:/etc/dnsmasq.d:rw
       - ./config/unbound:/etc/unbound/unbound.conf.d:rw
-      - ./logs/unbound:/var/log/unbound:rw
-      - ./config/unbound/root.hints:/etc/unbound/root.hints:ro
-      - ./config/unbound/root.key:/etc/unbound/root.key:ro
     restart: unless-stopped
 
 networks:
