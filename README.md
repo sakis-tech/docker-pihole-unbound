@@ -26,24 +26,29 @@ It sets up Pi-hole with the Unbound DNS resolver as Docker containers and automa
 
 ---
 
-## Installation
+## Quick Install (One-Liner)
 
-### Run as one-liner (direct execution)
+Run the installer directly using `wget` without cloning the repository:
 
-You must run the installer directly wget without cloning the repo:
 ```bash
 bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install.sh)"
 ```
-Follow the prompts:
-* Choose between example config or custom settings
-* Provide macvlan network details (parent interface, subnet, gateway, container IP)
-* Once complete, access Pi-hole at the configured IP address and port.
----
 
-## Accessing the Web Interface
+1. **Follow the prompts**
+   Choose whether to use the example configuration or enter custom settings.
 
-* URL: `http://<Pi-hole-IP>:<Web-Port>`
-* Default web password (if example config used): `admin`
+2. **Provide macvlan network details**
+
+   * Parent interface (e.g. `eth0`)
+   * Subnet (e.g. `192.168.10.0/24`)
+   * Gateway (e.g. `192.168.10.1`)
+   * Pi-hole container IP address (e.g. `192.168.10.50`)
+
+3. **Complete the installation**
+   The script will configure everything and start the Docker containers.
+
+4. **Access Pi-hole**
+   Open your browser and navigate to `http://<Pi-hole_IP>:<Port>` using the IP and port you configured.
 
 ---
 
