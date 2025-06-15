@@ -156,8 +156,7 @@ prompt_env() {
   echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
   echo -e "📄 .env Configuration"
   echo -e "─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${GREEN}This script will automatically:\n${NC}- ${YELLOW}Install Docker & Docker Compose\n${NC}- ${YELLOW}Install Git & Curl\n${NC}- ${YELLOW}Clone the project\n${NC}- ${YELLOW}Create .env and docker-compose.yaml\n${NC}- ${YELLOW}Setup Docker macvlan network\n${NC}- ${YELLOW}Launch Pi-hole + Unbound using Docker\n${NC}- ${YELLOW}Optional: Install Portainer (Docker GUI)${NC}"
-
+  echo -e "${YELLOW}Example Configuration:\n${NC}  • ${GREEN}Timezone: Europe/Berlin\n${NC}  • ${GREEN}Web Password: admin\n${NC}  • ${GREEN}Web Port: 80\n${NC}  • ${GREEN}Domain: local\n${NC}  • ${GREEN}Web Theme: default-dark\n${NC}  • ${GREEN}Hostname: pihole\n${NC}  • ${GREEN}Pihole static IP (e.g. 192.168.10.50)${NC}"
   echo -e "\n${YELLOW}❓ Use example config? [Y/n]: ${NC}\c"
   read -r USE_EXAMPLE
 
