@@ -149,7 +149,7 @@ install_portainer() {
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v portainer_data:/data \
     portainer/portainer-ce
-  echo -e "${GREEN}✅ Portainer is running at ${PORTAINER_IP}${NC}"
+  echo -e "${GREEN}✅ portainer was successfully installed.${NC}"
 }
 
 prompt_env() {
