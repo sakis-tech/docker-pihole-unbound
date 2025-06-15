@@ -220,8 +220,24 @@ check_container() {
 #######################################
 create_config_dir() {
   echo -e "${BLUE}${ARROW} Creating Unbound configuration directory on host...${NC}"
-  mkdir -p "${HOST_UNBOUND_CONF_DIR}"
-  echo -e "${GREEN}${CHECK} Created directory: ${HOST_UNBOUND_CONF_DIR}${NC}"
+  
+  # Check if sudo is needed
+  if [ ! -w "$HOST_CONFIG_DIR" ] && [ -d "$HOST_CONFIG_DIR" ]; then
+    echo -e "${YELLOW}${WARNING} Permission issue detected. Trying with sudo...${NC}"
+    if command -v sudo &>/dev/null; then
+      sudo mkdir -p "${HOST_UNBOUND_CONF_DIR}"
+      # Fix ownership
+      sudo chown -R $(whoami):$(id -gn) "${HOST_CONFIG_DIR}"
+      echo -e "${GREEN}${CHECK} Created directory with sudo: ${HOST_UNBOUND_CONF_DIR}${NC}"
+    else
+      echo -e "${RED}${CROSS} Cannot create directory due to permissions.${NC}"
+      echo -e "${YELLOW}${INFO} Please run this script with sudo.${NC}"
+      exit 1
+    fi
+  else
+    mkdir -p "${HOST_UNBOUND_CONF_DIR}"
+    echo -e "${GREEN}${CHECK} Created directory: ${HOST_UNBOUND_CONF_DIR}${NC}"
+  fi
 }
 
 #######################################
@@ -233,9 +249,38 @@ create_config_dir() {
 #######################################
 copy_config() {
   echo -e "${BLUE}${ARROW} Copying Unbound configuration from container...${NC}"
+  
   if [ ! -f "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" ]; then
-    docker cp "${CONTAINER}:${CONF_FILE}" "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf"
-    echo -e "${GREEN}${CHECK} Successfully copied Unbound configuration file.${NC}"
+    # Check if file exists in container
+    if docker exec "${CONTAINER}" test -f "${CONF_FILE}" 2>/dev/null; then
+      # File exists, try to copy it
+      if docker cp "${CONTAINER}:${CONF_FILE}" "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" 2>/dev/null; then
+        echo -e "${GREEN}${CHECK} Successfully copied Unbound configuration file.${NC}"
+      else
+        echo -e "${YELLOW}${WARNING} Permission issue copying file. Trying with sudo...${NC}"
+        if command -v sudo &>/dev/null; then
+          docker cp "${CONTAINER}:${CONF_FILE}" - | sudo tee "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" > /dev/null
+          sudo chown $(whoami):$(id -gn) "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf"
+          echo -e "${GREEN}${CHECK} Successfully copied file using sudo.${NC}"
+        else
+          echo -e "${RED}${CROSS} Could not copy file due to permissions.${NC}"
+        fi
+      fi
+    else
+      # File doesn't exist, create a minimal one
+      echo -e "${YELLOW}${WARNING} Configuration file not found in container.${NC}"
+      echo -e "${YELLOW}• Creating a minimal pi-hole.conf file...${NC}"
+      
+      local CONFIG_CONTENT="# Unbound configuration for Pi-hole\n\n# Basic server settings\nserver:\n    verbosity: 1\n    num-threads: 1\n    interface: 127.0.0.1\n    port: 5335\n    do-ip4: yes\n    do-udp: yes\n    do-tcp: yes\n\n    # Privacy settings\n    hide-identity: yes\n    hide-version: yes\n\n    # Add additional configurations in separate files\n    # include: \"/etc/unbound/unbound.conf.d/dnssec.conf\"\n"
+      
+      echo -e "$CONFIG_CONTENT" > "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" 2>/dev/null || {
+        if command -v sudo &>/dev/null; then
+          echo -e "$CONFIG_CONTENT" | sudo tee "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" > /dev/null
+          sudo chown $(whoami):$(id -gn) "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf"
+        fi
+      }
+      echo -e "${GREEN}${CHECK} Created default configuration file.${NC}"
+    fi
   else
     echo -e "${YELLOW}${WARNING} Unbound configuration file already exists on host.${NC}"
   fi
