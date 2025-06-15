@@ -68,6 +68,10 @@ detect_os() {
   fi
 }
 
+is_portainer_installed() {
+  docker ps -a --format '{{.Names}}' | grep -qw portainer
+}
+
 install_portainer() {
   if docker ps -a --format '{{.Names}}' | grep -qw portainer; then
     echo -e "${GREEN}✅ Portainer container already exists — skipping installation.${NC}"
@@ -90,12 +94,18 @@ install_portainer() {
 
 
 prompt_portainer() {
-  echo -ne "\n${YELLOW}❓ Would you like to install Portainer? [Y/n]: ${NC}"
-  read -r INSTALL_PORTAINER
-  if [[ "$INSTALL_PORTAINER" =~ ^[Nn]$ ]]; then
-    echo -e "${YELLOW}Portainer will not be installed.${NC}"
+  if is_portainer_installed; then
+    echo -e "${GREEN}✅ Portainer container already exists — skipping installation.${NC}"
+    PORTAINER_INSTALLED=true
   else
-    install_portainer
+    echo -ne "\n${YELLOW}❓ Would you like to install Portainer? [Y/n]: ${NC}"
+    read -r INSTALL_PORTAINER
+    if [[ "$INSTALL_PORTAINER" =~ ^[Nn]$ ]]; then
+      echo -e "${YELLOW}Portainer will not be installed.${NC}"
+      PORTAINER_INSTALLED=false
+    else
+      install_portainer
+    fi
   fi
 }
 
@@ -151,33 +161,33 @@ prompt_env() {
   echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
   echo -e "📄 .env Configuration"
   echo -e "─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${YELLOW}Example Configuration:\n${NC}  • ${GREEN}Timezone: Europe/Berlin\n${NC}  • ${GREEN}Web Password: admin\n${NC}  • ${GREEN}Web Port: 80\n${NC}  • ${GREEN}Domain: local\n${NC}  • ${GREEN}Web Theme: default-dark\n${NC}  • ${GREEN}Hostname: pihole\n${NC}  • ${GREEN}Pihole static IP (e.g. 192.168.10.50)${NC}"
+  echo -e "${YELLOW}Example Configuration:\n${NC}  • ${GREEN}Timezone: Europe/Berlin\n${NC}  • ${GREEN}Web Password: admin\n${NC}  • ${GREEN}Web Port: 80\n${NC}  • ${GREEN}Domain: local\n${NC}  • ${GREEN}Web Theme: default-dark\n${NC}  • ${GREEN}Hostname: pihole\n${NC}  • ${GREEN}Pihole static IP (e.g. 192.168.10.20)${NC}"
   echo -e "\n${YELLOW}❓ Use example config? [Y/n]: ${NC}\c"
   read -r USE_EXAMPLE
 
   if [[ "$USE_EXAMPLE" =~ ^[Nn]$ ]]; then
     echo -ne "${GREEN}Timezone (e.g. Europe/Berlin): ${NC}"
-	read -r TZ
-	echo -ne "${GREEN}Web admin password: ${NC}"
-	read -r WEBPASSWORD
-	echo -ne "${GREEN}Pihole Web-GUI port: ${NC}"
-	read -r PIHOLE_WEBPORT
-	echo -ne "${GREEN}Domain name (e.g. local): ${NC}"
-	read -r DOMAIN_NAME
-	echo -ne "${GREEN}Web theme (default-dark or default-light): ${NC}"
-	read -r WEBTHEME
-	echo -ne "${GREEN}Hostname (e.g. pihole): ${NC}"
-	read -r HOSTNAME
-	echo -ne "${GREEN}Pihole static IP (e.g. 192.168.10.20): ${NC}"
-	read -r PIHOLE_IP
+        read -r TZ
+        echo -ne "${GREEN}Web admin password: ${NC}"
+        read -r WEBPASSWORD
+        echo -ne "${GREEN}Pihole Web-GUI port: ${NC}"
+        read -r PIHOLE_WEBPORT
+        echo -ne "${GREEN}Domain name (e.g. local): ${NC}"
+        read -r DOMAIN_NAME
+        echo -ne "${GREEN}Web theme (default-dark or default-light): ${NC}"
+        read -r WEBTHEME
+        echo -ne "${GREEN}Hostname (e.g. pihole): ${NC}"
+        read -r HOSTNAME
+        echo -ne "${GREEN}Pihole static IP (e.g. 192.168.10.20): ${NC}"
+        read -r PIHOLE_IP
   else
-	TZ="Europe/Berlin"
-	WEBPASSWORD="admin"
-	PIHOLE_WEBPORT="80"
-	DOMAIN_NAME="local"
-	WEBTHEME="default-dark"
-	HOSTNAME="pihole"
-        PIHOLE_IP="192.168.10.20"
+        TZ="Europe/Berlin"
+        WEBPASSWORD="admin"
+        PIHOLE_WEBPORT="80"
+        DOMAIN_NAME="local"
+        WEBTHEME="default-dark"
+        HOSTNAME="pihole"
+    PIHOLE_IP="192.168.10.20"
   fi
 
   cat > .env <<EOF
@@ -206,9 +216,6 @@ prompt_macvlan() {
 
   echo -ne "${YELLOW}❓ Gateway (e.g. 192.168.10.1): ${NC}"
   read -r MACVLAN_GATEWAY
-
-  echo -ne "${YELLOW}❓ Pi-hole IP (e.g. 192.168.10.20): ${NC}"
-  read -r PIHOLE_IP
 }
 
 
@@ -269,14 +276,13 @@ print_success() {
   echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
   echo -e "🎉 Pi-hole is now running!"
   echo -e "─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${GREEN}\n➡️  Access:${NC} ${YELLOW}http://${PIHOLE_IP}:${PIHOLE_WEBPORT}${NC}"
+  echo -e "${GREEN}\n📍  Pihole Web-GUI:${NC} ${YELLOW}http://${PIHOLE_IP}:${PIHOLE_WEBPORT}${NC}"
   echo -e "${GREEN}🔑 Login Password:${NC} ${YELLOW}Set in .env${NC}"
-  echo -e "${GREEN}📁 Unbound config:${NC} ${YELLOW}./config/unbound/unbound-pihole.conf${NC}"
-  echo -e "${GREEN}🔁 Restart with:${NC} ${YELLOW}docker-compose restart${NC}\n"
   if [ "$PORTAINER_INSTALLED" = true ]; then
-    echo -e "${GREEN}Portainer UI: ${YELLOW}http://${HOST_IP}:9000${NC}"
+  echo -e "${GREEN}🌐 Portainer UI: ${YELLOW}http://${HOST_IP}:9000${NC}"
   fi
-  echo
+  echo -e "${GREEN}🔁 Restart Portainer with:${NC} ${YELLOW}docker restart portainer${NC}\n"
+
 }
 
 main() {
