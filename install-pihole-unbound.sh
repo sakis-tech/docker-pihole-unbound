@@ -79,6 +79,7 @@ install_portainer() {
     -v portainer_data:/data \
     portainer/portainer-ce
   PORTAINER_INSTALLED=true
+echo -e "${GREEN}✅ portainer was successfully installed.${NC}"
 }
 
 prompt_portainer() {
@@ -137,19 +138,6 @@ clone_repo() {
     echo -e "${YELLOW}📥 Cloning repository…${NC}"
     git clone "$REPO_URL"
   fi
-}
-
-install_portainer() {
-  echo -e "${YELLOW}🔧 Installing Portainer…${NC}"
-  sudo docker volume create portainer_data
-  sudo docker run -d \
-    --name portainer \
-    -p 9000:9000 \
-    --restart=always \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -v portainer_data:/data \
-    portainer/portainer-ce
-  echo -e "${GREEN}✅ portainer was successfully installed.${NC}"
 }
 
 prompt_env() {
