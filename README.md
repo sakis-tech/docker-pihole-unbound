@@ -111,7 +111,7 @@ All scripts in this project feature:
 To update Pi-hole and Unbound to the latest versions, run:
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/update-pihole-unbound.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/update-pihole-unbound.sh)"
 ```
 
 ### Update Process
