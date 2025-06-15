@@ -69,6 +69,12 @@ detect_os() {
 }
 
 install_portainer() {
+  if docker ps -a --format '{{.Names}}' | grep -qw portainer; then
+    echo -e "${GREEN}✅ Portainer container already exists — skipping installation.${NC}"
+    PORTAINER_INSTALLED=true
+    return
+  fi
+
   echo -e "${YELLOW}🔧 Installing Portainer…${NC}"
   sudo docker volume create portainer_data
   sudo docker run -d \
@@ -79,8 +85,9 @@ install_portainer() {
     -v portainer_data:/data \
     portainer/portainer-ce
   PORTAINER_INSTALLED=true
-echo -e "${GREEN}✅ portainer was successfully installed.${NC}"
+  echo -e "${GREEN}✅ Portainer was successfully installed.${NC}"
 }
+
 
 prompt_portainer() {
   echo -ne "\n${YELLOW}❓ Would you like to install Portainer? [Y/n]: ${NC}"
