@@ -200,7 +200,7 @@ prompt_macvlan() {
   echo -ne "${YELLOW}❓ Gateway (e.g. 192.168.10.1): ${NC}"
   read -r MACVLAN_GATEWAY
 
-  echo -ne "${YELLOW}❓ Pi-hole IP (e.g. 192.168.10.50): ${NC}"
+  echo -ne "${YELLOW}❓ Pi-hole IP (e.g. 192.168.10.20): ${NC}"
   read -r PIHOLE_IP
 }
 
