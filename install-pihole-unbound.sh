@@ -370,15 +370,30 @@ prompt_env() {
   fi
 
   echo -e "${GREEN}${WRITE} Creating .env file...${NC}"
-  cat > .env <<EOF
-TZ=$TZ
+  
+  # Create env content in a variable first
+  local env_content="TZ=$TZ
 WEBPASSWORD=$WEBPASSWORD
 PIHOLE_WEBPORT=$PIHOLE_WEBPORT
 DOMAIN_NAME=$DOMAIN_NAME
 WEBTHEME=$WEBTHEME
 HOSTNAME=$HOSTNAME
-PIHOLE_IP=$PIHOLE_IP
-EOF
+PIHOLE_IP=$PIHOLE_IP"
+
+  # Try writing to file, with fallbacks for permissions
+  if ! echo "$env_content" > .env 2>/dev/null; then
+    echo -e "${YELLOW}${WARNING} Permission issue creating .env file. Trying with sudo...${NC}"
+    if command -v sudo &>/dev/null; then
+      echo "$env_content" | sudo tee .env > /dev/null
+      # Fix ownership if using sudo
+      sudo chown $(whoami):$(id -gn) .env
+    else
+      echo -e "${RED}${CROSS} Could not create .env file due to permissions.${NC}"
+      echo -e "${YELLOW}${INFO} Please run this script with appropriate permissions.${NC}"
+      exit 1
+    fi
+  fi
+  
   echo -e "${GREEN}${CHECK} Environment configuration created successfully.${NC}"
 }
 
@@ -446,8 +461,9 @@ create_macvlan_network() {
 #######################################
 generate_compose() {
   echo -e "${BLUE}${ARROW} Generating ${COMPOSE_FILE}...${NC}"
-  cat > ${COMPOSE_FILE} <<EOF
-services:
+  
+  # Create compose content in a variable first
+  local compose_content="services:
   pihole-unbound:
     container_name: pihole-unbound
     image: mpgirro/pihole-unbound:latest
@@ -470,12 +486,27 @@ services:
     volumes:
       - ./config/pihole:/etc/pihole:rw
       - ./config/pihole:/etc/dnsmasq.d:rw
+      - ./config/unbound:/etc/unbound:rw
     restart: unless-stopped
 
 networks:
   pihole_macvlan:
-    external: true
-EOF
+    external: true"
+
+  # Try writing to file, with fallbacks for permissions
+  if ! echo "$compose_content" > "${COMPOSE_FILE}" 2>/dev/null; then
+    echo -e "${YELLOW}${WARNING} Permission issue creating ${COMPOSE_FILE}. Trying with sudo...${NC}"
+    if command -v sudo &>/dev/null; then
+      echo "$compose_content" | sudo tee "${COMPOSE_FILE}" > /dev/null
+      # Fix ownership if using sudo
+      sudo chown $(whoami):$(id -gn) "${COMPOSE_FILE}"
+    else
+      echo -e "${RED}${CROSS} Could not create ${COMPOSE_FILE} due to permissions.${NC}"
+      echo -e "${YELLOW}${INFO} Please run this script with appropriate permissions.${NC}"
+      exit 1
+    fi
+  fi
+  
   echo -e "${GREEN}${CHECK} ${COMPOSE_FILE} created successfully with Unbound volume mount.${NC}"
 }
 
@@ -488,14 +519,46 @@ EOF
 #######################################
 start_containers() {
   echo -e "${BLUE}${ARROW} Starting Docker containers...${NC}"
+  
+  # Create required directories first with proper permissions
+  echo -e "${YELLOW}• Creating configuration directories...${NC}"
+  
+  # Check if sudo is needed
+  if [ ! -w "./config" ] && [ -d "./config" ]; then
+    local use_sudo=true
+  elif [ ! -d "./config" ] && [ ! -w "." ]; then
+    local use_sudo=true
+  else
+    local use_sudo=false
+  fi
+  
+  # Create directories with proper permissions
+  if $use_sudo; then
+    echo -e "${YELLOW}• Using sudo for directory creation${NC}"
+    sudo mkdir -p ./config/pihole
+    sudo mkdir -p ./config/unbound
+    # Fix ownership
+    sudo chown -R $(whoami):$(id -gn) ./config
+  else
+    mkdir -p ./config/pihole
+    mkdir -p ./config/unbound
+  fi
+  
+  # Start the containers
   if command -v docker-compose &>/dev/null; then
-    echo -e "${GREEN}Using docker-compose to start containers...${NC}"
+    echo -e "${YELLOW}• Using docker-compose to start containers...${NC}"
     docker-compose up -d
   elif command -v docker &>/dev/null && docker compose version &>/dev/null; then
-    echo -e "${GREEN}Using docker compose plugin to start containers...${NC}"
+    echo -e "${YELLOW}• Using docker compose plugin to start containers...${NC}"
     docker compose up -d
   fi
-  echo -e "${GREEN}${CHECK} Containers started successfully.${NC}"
+  
+  # Check if containers started successfully
+  if docker ps | grep -q "pihole-unbound"; then
+    echo -e "${GREEN}${CHECK} Containers started successfully.${NC}"
+  else
+    echo -e "${RED}${CROSS} Container failed to start. Check permissions and Docker configuration.${NC}"
+  fi
 }
 
 #######################################
@@ -525,6 +588,162 @@ print_success() {
     echo -e "${YELLOW}${RESTART} Restart Portainer:${NC} ${GREEN}docker restart portainer${NC}"
   fi
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
+}
+
+#######################################
+# Cleans up the repository, leaving only essential files
+# Globals:
+#   None
+# Arguments:
+#   None
+#######################################
+cleanup_files() {
+  echo -e "${BLUE}${ARROW} Cleaning up repository files...${NC}"
+  
+  # First ensure we're in the correct directory
+  local install_dir=""
+  
+  # Check if the docker-compose file exists in current directory
+  if [ -f "./docker-compose.yaml" ] || [ -f "./docker-compose.yml" ]; then
+    install_dir="$(pwd)"
+  # Check if REPO_DIR is set and valid
+  elif [ -n "$REPO_DIR" ] && [ -d "$REPO_DIR" ]; then
+    install_dir="$REPO_DIR"
+    cd "$REPO_DIR"
+  # Try to find installation directory from running container
+  else
+    if command -v docker &>/dev/null && docker ps -q -f name=pihole-unbound &>/dev/null; then
+      local config_path
+      config_path=$(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/pihole"}}{{.Source}}{{end}}{{end}}' "pihole-unbound" 2>/dev/null)
+      if [ -n "$config_path" ] && [ -d "$(dirname "$(dirname "$config_path")")" ]; then
+        install_dir=$(dirname "$(dirname "$config_path")")
+        cd "$install_dir"
+      fi
+    fi
+  fi
+  
+  # If we still can't find the installation directory, exit gracefully
+  if [ -z "$install_dir" ] || [ ! -d "$install_dir" ]; then
+    echo -e "${YELLOW}${WARNING} Could not locate installation directory for cleanup.${NC}"
+    echo -e "${YELLOW}${INFO} Manual cleanup required: Keep only docker-compose.yaml, .env, and config/ directory.${NC}"
+    return 1
+  fi
+  
+  echo -e "${YELLOW}• Found installation in: ${install_dir}${NC}"
+  
+  # Check for sudo privileges
+  local use_sudo=false
+  if [ "$(id -u)" -eq 0 ]; then
+    # Already running as root
+    use_sudo=false
+  elif command -v sudo &>/dev/null; then
+    # Can use sudo
+    use_sudo=true
+  fi
+  
+  # Create a temporary directory for backup just in case
+  local backup_dir="${install_dir}/backup_$(date +%Y%m%d%H%M%S)"
+  if $use_sudo; then
+    sudo mkdir -p "$backup_dir"
+  else
+    mkdir -p "$backup_dir"
+  fi
+  
+  # Helper function to copy files with proper permissions handling
+  copy_with_permissions() {
+    local src="$1"
+    local dst="$2"
+    
+    if [ ! -e "$src" ]; then
+      return 1
+    fi
+    
+    if $use_sudo; then
+      sudo cp -r "$src" "$dst"
+    else
+      cp -r "$src" "$dst" 2>/dev/null || {
+        echo -e "${YELLOW}${WARNING} Permission issue copying ${src}. Trying with sudo...${NC}"
+        if command -v sudo &>/dev/null; then
+          sudo cp -r "$src" "$dst"
+        else
+          echo -e "${RED}${CROSS} Could not copy ${src}. Continuing anyway.${NC}"
+        fi
+      }
+    fi
+    return 0
+  }
+  
+  # Copy essential files to backup
+  echo -e "${YELLOW}• Backing up essential files...${NC}"
+  if [ -f "${install_dir}/docker-compose.yaml" ]; then
+    copy_with_permissions "${install_dir}/docker-compose.yaml" "${backup_dir}/"
+  elif [ -f "${install_dir}/docker-compose.yml" ]; then
+    copy_with_permissions "${install_dir}/docker-compose.yml" "${backup_dir}/"
+  else
+    echo -e "${YELLOW}${WARNING} docker-compose file not found, skipping backup.${NC}"
+  fi
+  
+  if [ -f "${install_dir}/.env" ]; then
+    copy_with_permissions "${install_dir}/.env" "${backup_dir}/"
+  else
+    echo -e "${YELLOW}${WARNING} .env file not found, skipping backup.${NC}"
+  fi
+  
+  if [ -d "${install_dir}/config" ]; then
+    echo -e "${YELLOW}• Backing up config directory...${NC}"
+    copy_with_permissions "${install_dir}/config" "${backup_dir}/"
+  else
+    mkdir -p "${backup_dir}/config"
+    echo -e "${YELLOW}${WARNING} config directory not found, creating empty one.${NC}"
+  fi
+  
+  # Remove everything except backup dir
+  echo -e "${YELLOW}• Removing unnecessary files...${NC}"
+  if $use_sudo; then
+    sudo find "${install_dir}" -mindepth 1 -not -path "${backup_dir}" -not -path "${backup_dir}/*" -exec rm -rf {} \; 2>/dev/null || true
+  else
+    find "${install_dir}" -mindepth 1 -not -path "${backup_dir}" -not -path "${backup_dir}/*" -exec rm -rf {} \; 2>/dev/null || true
+  fi
+  
+  # Move essential files back
+  echo -e "${YELLOW}• Restoring essential files...${NC}"
+  if [ -f "${backup_dir}/docker-compose.yaml" ]; then
+    copy_with_permissions "${backup_dir}/docker-compose.yaml" "${install_dir}/"
+  elif [ -f "${backup_dir}/docker-compose.yml" ]; then
+    copy_with_permissions "${backup_dir}/docker-compose.yml" "${install_dir}/"
+  fi
+  
+  if [ -f "${backup_dir}/.env" ]; then
+    copy_with_permissions "${backup_dir}/.env" "${install_dir}/"
+  fi
+  
+  if [ -d "${backup_dir}/config" ]; then
+    copy_with_permissions "${backup_dir}/config" "${install_dir}/"
+  fi
+  
+  # Remove backup dir
+  echo -e "${YELLOW}• Removing temporary backup...${NC}"
+  if $use_sudo; then
+    sudo rm -rf "${backup_dir}"
+  else
+    rm -rf "${backup_dir}"
+  fi
+  
+  # Ensure proper directory structure exists
+  echo -e "${YELLOW}• Ensuring proper directory structure...${NC}"
+  if $use_sudo; then
+    sudo mkdir -p "${install_dir}/config/pihole"
+    sudo mkdir -p "${install_dir}/config/unbound"
+  else
+    mkdir -p "${install_dir}/config/pihole"
+    mkdir -p "${install_dir}/config/unbound"
+  fi
+  
+  echo -e "${GREEN}${CHECK} Repository cleaned up, leaving only essential files:${NC}"
+  echo -e "${YELLOW}• docker-compose.yaml${NC}"
+  echo -e "${YELLOW}• .env${NC}"
+  echo -e "${YELLOW}• config/pihole/${NC}"
+  echo -e "${YELLOW}• config/unbound/${NC}"
 }
 
 #######################################
@@ -570,6 +789,9 @@ main() {
   echo -e "${BLUE}${ARROW} Finalizing installation...${NC}"
   start_containers
   print_success
+  
+  # Clean up repository, leaving only essential files
+  cleanup_files
 
   echo -e "${GREEN}${CHECK} Installation completed.${NC}"
 }
