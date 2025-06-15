@@ -10,13 +10,15 @@ NC='\033[0m' # No Color
 
 REPO_URL="https://github.com/mpgirro/docker-pihole-unbound.git"
 REPO_DIR="docker-pihole-unbound"
+PORTAINER_INSTALLED=false
+HOST_IP=$(ip route get 1 | awk '{print $7; exit}')
 
 print_header() {
   clear
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
   echo -e "${BLUE}  🚀 Pi-hole + Unbound Auto‑Installer                         ${NC}"
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${GREEN}This script will automatically:\n${NC}- ${YELLOW}Install Docker & Docker Compose\n${NC}- ${YELLOW}Install Git & Curl\n${NC}- ${YELLOW}Clone the project\n${NC}- ${YELLOW}Create .env and docker-compose.yaml\n${NC}- ${YELLOW}Setup Docker macvlan network\n${NC}- ${YELLOW}Launch Pi-hole + Unbound using Docker${NC}"
+  echo -e "${GREEN}This script will automatically:\n${NC}- ${YELLOW}Install Docker & Docker Compose\n${NC}- ${YELLOW}Install Git & Curl\n${NC}- ${YELLOW}Clone the Project\n${NC}- ${YELLOW}Create .env and docker-compose.yaml\n${NC}- ${YELLOW}Setup Docker macvlan network\n${NC}- ${YELLOW}Launch Pi-hole + Unbound using Docker\n${NC}- ${YELLOW}Optional: Install Portainer (Docker GUI)${NC}"
   echo -e "${GREEN}Press [Enter] to begin...${NC}"
   read -r _
 }
@@ -63,6 +65,29 @@ detect_os() {
     esac
   else
     OS="unknown"
+  fi
+}
+
+install_portainer() {
+  echo -e "${YELLOW}🔧 Installing Portainer…${NC}"
+  sudo docker volume create portainer_data
+  sudo docker run -d \
+    --name portainer \
+    -p 9000:9000 \
+    --restart=always \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v portainer_data:/data \
+    portainer/portainer-ce
+  PORTAINER_INSTALLED=true
+}
+
+prompt_portainer() {
+  echo -ne "\n${YELLOW}❓ Would you like to install Portainer? [Y/n]: ${NC}"
+  read -r INSTALL_PORTAINER
+  if [[ "$INSTALL_PORTAINER" =~ ^[Nn]$ ]]; then
+    echo -e "${YELLOW}Portainer will not be installed.${NC}"
+  else
+    install_portainer
   fi
 }
 
@@ -114,28 +139,24 @@ clone_repo() {
   fi
 }
 
-create_config_dirs() {
-  echo -e "${YELLOW}📁 Creating configuration directories…${NC}"
-  mkdir -p config/pihole config/unbound
+install_portainer() {
+  echo -e "${YELLOW}🔧 Installing Portainer…${NC}"
+  sudo docker volume create portainer_data
+  sudo docker run -d \
+    --name portainer \
+    -p 9000:9000 \
+    --restart=always \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v portainer_data:/data \
+    portainer/portainer-ce
+  echo -e "${GREEN}✅ Portainer is running at ${PORTAINER_IP}${NC}"
 }
-
-download_unbound_conf() {
-  echo -e "${YELLOW}⬇️  Downloading unbound-pihole.conf…${NC}"
-  curl -fsSL https://raw.githubusercontent.com/mpgirro/docker-pihole-unbound/main/docker/unbound-pihole.conf -o ./config/unbound/unbound-pihole.conf
-  if [[ $? -eq 0 ]]; then
-    echo -e "${GREEN}✅ unbound-pihole.conf downloaded successfully.${NC}"
-  else
-    echo -e "${RED}❌ Failed to download unbound-pihole.conf.${NC}"
-    exit 1
-  fi
-}
-
 
 prompt_env() {
   echo -e "\n${BLUE}─────────────────────────────────────────────────────────────"
   echo -e "📄 .env Configuration"
   echo -e "─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${YELLOW}Example Configuration:\n${NC}  • ${GREEN}Timezone: Europe/Berlin\n${NC}  • ${GREEN}Web Password: admin\n${NC}  • ${GREEN}Web Port: 80\n${NC}  • ${GREEN}Domain: local\n${NC}  • ${GREEN}Web Theme: default-dark\n${NC}  • ${GREEN}Hostname: pihole\n${NC}  • ${GREEN}Pihole static IP (e.g. 192.168.10.50)${NC}"
+  echo -e "${GREEN}This script will automatically:\n${NC}- ${YELLOW}Install Docker & Docker Compose\n${NC}- ${YELLOW}Install Git & Curl\n${NC}- ${YELLOW}Clone the project\n${NC}- ${YELLOW}Create .env and docker-compose.yaml\n${NC}- ${YELLOW}Setup Docker macvlan network\n${NC}- ${YELLOW}Launch Pi-hole + Unbound using Docker\n${NC}- ${YELLOW}Optional: Install Portainer (Docker GUI)${NC}"
 
   echo -e "\n${YELLOW}❓ Use example config? [Y/n]: ${NC}\c"
   read -r USE_EXAMPLE
@@ -236,7 +257,6 @@ services:
     volumes:
       - ./config/pihole:/etc/pihole:rw
       - ./config/pihole:/etc/dnsmasq.d:rw
-      - ./config/unbound:/etc/unbound/unbound.conf.d:rw
     restart: unless-stopped
 
 networks:
@@ -258,6 +278,10 @@ print_success() {
   echo -e "${GREEN}🔑 Login Password:${NC} ${YELLOW}Set in .env${NC}"
   echo -e "${GREEN}📁 Unbound config:${NC} ${YELLOW}./config/unbound/unbound-pihole.conf${NC}"
   echo -e "${GREEN}🔁 Restart with:${NC} ${YELLOW}docker-compose restart${NC}\n"
+  if [ "$PORTAINER_INSTALLED" = true ]; then
+    echo -e "${GREEN}Portainer UI: ${YELLOW}http://${HOST_IP}:9000${NC}"
+  fi
+  echo
 }
 
 main() {
@@ -277,8 +301,6 @@ main() {
 
   clone_repo
   cd "$REPO_DIR"
-  create_config_dirs
-  download_unbound_conf
   prompt_env
   prompt_macvlan
   create_macvlan_network
