@@ -7,7 +7,6 @@
 # running in a Docker container. It handles prerequisites installation, network configuration,
 # and container setup.
 #
-# Author: Original by mpgirro, enhanced by Sakis
 #######################################
 set -euo pipefail
 
