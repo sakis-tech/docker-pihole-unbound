@@ -1,66 +1,76 @@
 # Pi-hole + Unbound Docker Installer
 
-A complete solution for automatically deploying Pi-hole with Unbound DNS resolver as Docker containers. This project builds upon the excellent [mpgirro/docker-pihole-unbound](https://github.com/mpgirro/docker-pihole-unbound) repository with enhanced installation scripts and configuration options.
+A complete solution for automatically deploying Pi-hole with Unbound DNS resolver in Docker containers. This project enhances the [mpgirro/docker-pihole-unbound](https://github.com/mpgirro/docker-pihole-unbound) repository with improved installation scripts and user-friendly configuration options.
 
-## Overview
+## Table of Contents
 
-This project provides a comprehensive set of scripts to:
+- [What is this?](#what-is-this)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Updating your Installation](#updating-your-installation)
+- [Advanced Configuration](#advanced-configuration)
 
-1. **Install** - Set up Pi-hole and Unbound in Docker containers
-2. **Configure** - Easily manage Unbound settings from your host system
-3. **Update** - Keep your installation up to date
+## What is this?
 
----
+This project combines Pi-hole and Unbound into a powerful network solution:
+
+- **Pi-hole** provides network-wide ad blocking and DNS filtering
+- **Unbound** functions as a recursive DNS resolver for enhanced privacy
+- **Docker** isolates these services for better security and easier management
+
+The included scripts make installation and management simple even for beginners.
 
 ## Features
 
-- 🐳 **Docker-based installation** - Everything runs in containers for better isolation
-- 🔍 **Pi-hole DNS filtering** - Block ads and trackers at the network level
-- 🔒 **Unbound recursive resolver** - Control your own DNS resolution chain
-- 🌐 **Macvlan networking** - Makes Pi-hole appear as a separate device on your network
-- ⚙️ **Host-based configuration** - Edit Unbound settings directly from your host
-- 🔄 **Automatic updates** - Keep everything current with the update script
-- 🎛️ **DHCP support** - Optional DHCP server functionality
-
----
+- 🐳 **Docker-based deployment** - Clean installation and easy maintenance
+- 🔍 **Ad blocking** - Network-wide protection against ads and trackers
+- 🔒 **Privacy protection** - Your own recursive DNS resolver with DNSSEC validation
+- 🌐 **Macvlan networking** - Pi-hole appears as a separate device on your network
+- ⚙️ **Easy configuration** - Edit settings directly from your host system
+- 🔄 **One-click updates** - Keep everything current with minimal effort
+- 🎨 **User-friendly scripts** - Color-coded output and status icons for clarity
+- ✅ **Interactive setup** - Clear prompts guide you through the process
 
 ## Requirements
 
-- 🐧 Linux system (tested on Debian, Ubuntu, CentOS, Fedora)
-- 🔧 `bash` and `sudo` privileges
-- 🖧 A physical network interface for macvlan (e.g., `eth0`)
-- 📦 Internet connection for downloading Docker and containers
+- 🐧 Linux system (tested on Debian, Ubuntu, CentOS, and Fedora)
+- 🔧 `bash` shell and `sudo` privileges
+- 🖧 Physical network interface for macvlan (e.g., `eth0`)
+- 📦 Internet connection for downloading containers
 
----
+## Installation
 
-## Quick Installation Guide
+### One-Command Installation
 
-### 1. One-Line Installer
-
-Run the following command to install everything in one go:
+Use this single command to install everything automatically:
 
 ```bash
-bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install-pihole-unbound.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install-pihole-unbound.sh)"
 ```
 
-### 2. Follow the prompts
+### What happens during installation:
 
-- Choose between example configuration or custom settings
-- Configure the network settings:
-  - Parent interface (e.g., `eth0`)
-  - Network subnet (e.g., `192.168.10.0/24`)
-  - Gateway address (e.g., `192.168.10.1`)
-  - Pi-hole IP address (e.g., `192.168.10.50`)
+1. **Prerequisite check** - Docker, Docker Compose, Git, and other required tools
+2. **Interactive configuration** - You'll be prompted for:
+   - Network details (interface, subnet, IP address)
+   - Pi-hole settings (password, web port, theme)
+   - Optional Portainer installation for container management
+3. **Docker network setup** - Creates a macvlan network for your Pi-hole
+4. **Container deployment** - Pulls and launches the Pi-hole with Unbound container
 
-### 3. Initial Access
+### After installation
 
-When installation completes:
-1. Open your browser and navigate to `http://<Pi-hole_IP>:<Port>`
-2. Log in with the password you specified during installation
+1. Access the Pi-hole admin interface at `http://<Pi-hole_IP>:<Web_Port>`
+2. Log in with the password you set during installation
+3. Configure your devices to use the Pi-hole IP as their DNS server
 
 ---
 
-## Unbound Configuration Setup
+## Configuration
+
+### Unbound Configuration Setup
 
 After your Pi-hole + Unbound installation is running, use this script to set up convenient host-based configuration:
 
@@ -68,29 +78,117 @@ After your Pi-hole + Unbound installation is running, use this script to set up 
 bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
 ```
 
-### What the setup script does:
+#### What the setup script does:
 
-1. **Automatically finds** your Pi-hole + Unbound installation directory
+1. **Automatically finds** your Pi-hole installation directory
 2. **Creates** a configuration directory structure on your host
-3. **Extracts** the Unbound configuration from the container
-4. **Configures** docker-compose.yaml to mount the host configuration directory
-5. **Restarts** the container with the new mount points
+3. **Extracts** the current Unbound configuration from the container
+4. **Updates** docker-compose.yaml to mount the host configuration
+5. **Restarts** the container with the new configuration
 
-After running this script, you can edit Unbound configuration files directly from your host system.
+After running this script, you can edit Unbound configuration files directly on your host system without needing to access the container.
 
----
+### User-Friendly Experience
+
+All scripts in this project feature:
+
+- **Color-coded output** for better readability
+  - Blue headers for section titles
+  - Green text for successful operations
+  - Yellow notices for warnings and important information
+
+- **Progress indicators** with informative icons
+- **Clear confirmations** before any major changes
+- **Detailed feedback** throughout the process
+
+## Updating Your Installation
+
+To update Pi-hole and Unbound to the latest versions, run:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/update-pihole-unbound.sh)"
+```
+
+### Update Process
+
+The update script automatically:
+
+1. **Locates** your Pi-hole installation directory
+2. **Downloads** the latest Docker images
+3. **Restarts** containers with the updated images
+4. **Displays** your current configuration
+5. **Shows** container logs if requested
 
 ## Project Structure
 
+After installation and setup, your project will have this structure:
+
 ```
-/
-├── config/
-│   ├── pihole/     # Pi-hole configuration and data
-│   └── unbound/    # Unbound configuration files
-│       └── unbound.conf.d/  # Custom Unbound configurations
-├── docker-compose.yaml      # Container definitions
-└── .env                     # Environment variables
+/docker-pihole-unbound/
+├── docker-compose.yaml    # Container configuration
+├── .env                   # Environment variables
+└── config/                # Configuration directory
+    ├── pihole/            # Pi-hole configuration
+    └── unbound/           # Unbound configuration
+        └── pi-hole.conf   # DNS resolver settings
 ```
+
+## Advanced Configuration
+
+### Customizing Unbound DNS Resolver
+
+After running the setup script, you can customize Unbound by editing:
+
+```
+./config/unbound/pi-hole.conf
+```
+
+This file contains the configuration for your DNS resolver including DNSSEC settings, caching parameters, and other DNS-related options.
+
+### Applying Configuration Changes
+
+After making changes to any configuration files, restart the container:
+
+```bash
+docker compose restart pihole-unbound
+```
+
+### Additional Pi-hole Settings
+
+While most Pi-hole settings can be managed through the web interface, advanced configurations can be found in:
+
+```
+./config/pihole/
+```
+
+### Common Tasks
+
+- **View Pi-hole logs**: `docker compose logs pihole-unbound`
+- **Access Pi-hole container**: `docker compose exec pihole-unbound bash`
+- **Update gravity list**: `docker compose exec pihole-unbound pihole -g`
+
+## Troubleshooting
+
+### Container Issues
+- **Container not starting**: Check logs with `docker compose logs pihole-unbound`
+- **Permission problems**: If you've added your user to the docker group, log out and back in
+
+### Network Issues
+- **Network connectivity issues**: Verify your macvlan configuration matches your network settings
+- **DNS resolution problems**: Ensure your router is correctly forwarding DNS queries to Pi-hole
+- **Can't access admin interface**: Check if the IP address and port are correct
+
+### DNS Functionality
+- **Some domains not resolving**: Check for domain-specific blocks in Pi-hole's query log
+- **Slow DNS resolution**: Verify your upstream DNS servers in Unbound configuration
+
+## Support
+
+For issues related to these scripts, please open an issue in this repository.
+
+For Pi-hole specific questions, refer to the [Pi-hole documentation](https://docs.pi-hole.net/).
+
+For Unbound configuration options, see the [Unbound documentation](https://unbound.docs.nlnetlabs.nl/).
 
 ---
 
@@ -102,53 +200,6 @@ This approach has several benefits:
 - Direct accessibility from all network devices
 - Can function as your network's DHCP server if desired
 - Cleaner network architecture (no port forwarding required)
-
----
-
-## Maintenance & Updates
-
-### Updating the installation
-
-To update Pi-hole and Unbound to the latest versions:
-
-```bash
-bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/update-pihole-unbound.sh)"
-```
-
-### Applying Configuration Changes
-
-After editing Unbound configuration files, restart the container to apply changes:
-
-```bash
-docker-compose restart pihole-unbound
-```
-
----
-
-## Advanced Configuration
-
-### Customizing Unbound
-
-Edit the Unbound configuration at:
-```
-./config/unbound/unbound.conf.d/pi-hole.conf
-```
-
-### Pi-hole Custom Settings
-
-Most Pi-hole settings can be managed through the web interface. For advanced configurations, see the Pi-hole documentation for settings stored in:
-```
-./config/pihole/
-```
-
----
-
-## Troubleshooting
-
-- **Container not starting**: Check the logs with `docker logs pihole-unbound`
-- **Network connectivity issues**: Verify your macvlan configuration matches your network
-- **DNS resolution problems**: Ensure your router is correctly forwarding DNS queries
-- **Permission problems**: If you've added your user to the docker group, log out and back in
 
 ---
 
