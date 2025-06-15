@@ -52,7 +52,7 @@ The included scripts make installation and management simple even for beginners.
 Use this single command to install everything automatically:
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install-pihole-unbound.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install-pihole-unbound.sh)"
 ```
 
 ### What happens during installation:
@@ -80,7 +80,7 @@ sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-p
 After your Pi-hole + Unbound installation is running, use this script to set up convenient host-based configuration:
 
 ```bash
-sudo bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
+bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
 ```
 
 #### What the setup script does:
@@ -111,7 +111,7 @@ All scripts in this project feature:
 To update Pi-hole and Unbound to the latest versions, run:
 
 ```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/update-pihole-unbound.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/update-pihole-unbound.sh)"
 ```
 
 ### Update Process
