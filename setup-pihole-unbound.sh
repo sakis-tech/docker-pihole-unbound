@@ -122,18 +122,30 @@ find_install_dir() {
     fi
   done
   
-  # Find by container name using Docker metadata
+  # Find by container name using Docker metadata - with better error handling
   if command -v docker &>/dev/null; then
+    # Method 1: Try to get project directory from container labels
     local container_dir
     container_dir=$(docker inspect --format='{{.Config.Labels.com.docker.compose.project.working_dir}}' "${CONTAINER}" 2>/dev/null)
-    if [ $? -eq 0 ] && [ -n "$container_dir" ]; then
+    if [ $? -eq 0 ] && [ -n "$container_dir" ] && [ "$container_dir" != "<no value>" ] && [ -d "$container_dir" ]; then
       echo -e "${GREEN}${CHECK} Found installation in $container_dir based on container metadata.${NC}"
       cd "$container_dir"
       return 0
     fi
-  
-    # Search for docker-compose with this container
-    local compose_files=$(find $HOME -name "docker-compose.y*ml" -type f -exec grep -l "${CONTAINER}" {} \; 2>/dev/null)
+    
+    # Method 2: Get the mount source path for the config volume
+    local config_path
+    config_path=$(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/pihole"}}{{.Source}}{{end}}{{end}}' "${CONTAINER}" 2>/dev/null)
+    if [ -n "$config_path" ] && [ -d "$(dirname "$(dirname "$config_path")")" ]; then
+      local install_path=$(dirname "$(dirname "$config_path")")
+      echo -e "${GREEN}${CHECK} Found installation in $install_path based on volume mounts.${NC}"
+      cd "$install_path"
+      return 0
+    fi
+
+    # Method 3: Search for docker-compose with this container
+    echo -e "${YELLOW}• Searching for docker-compose files containing container name...${NC}"
+    local compose_files=$(find $HOME -maxdepth 5 -name "docker-compose.y*ml" -type f -exec grep -l "${CONTAINER}" {} \; 2>/dev/null)
     if [ -n "$compose_files" ]; then
       local first_file=$(echo "$compose_files" | head -n 1)
       local dir_path=$(dirname "$first_file")
@@ -141,11 +153,34 @@ find_install_dir() {
       cd "$dir_path"
       return 0
     fi
+    
+    # Method 4: Try to deduce from container name and network settings
+    echo -e "${YELLOW}• Checking container network settings...${NC}"
+    local network_name="pihole_macvlan"
+    local networks=$(docker network ls --format '{{.Name}}' | grep -E "(pihole|unbound)")
+    if [ -n "$networks" ]; then
+      local network_path="/var/lib/docker/volumes"
+      if [ -d "$network_path" ]; then
+        echo -e "${YELLOW}• Found potential Docker networks: $networks${NC}"
+        # We could try to follow network references here if needed
+      fi
+    fi
   else
     echo -e "${YELLOW}${WARNING} Docker command not found, skipping container-based detection.${NC}"
   fi
   
-  echo -e "${RED}${CROSS} Could not find installation directory automatically.${NC}"
+  # Last resort: Ask user for the path
+  echo -e "${YELLOW}${WARNING} Could not find installation directory automatically.${NC}"
+  echo -e "${YELLOW}• Please enter the path to your Pi-hole installation directory:${NC}"
+  read -r custom_path
+  
+  if [ -n "$custom_path" ] && [ -d "$custom_path" ]; then
+    cd "$custom_path"
+    echo -e "${GREEN}${CHECK} Using provided path: $custom_path${NC}"
+    return 0
+  fi
+  
+  echo -e "${RED}${CROSS} Could not find installation directory.${NC}"
   return 1
 }
 
