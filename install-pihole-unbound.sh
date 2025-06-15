@@ -300,6 +300,7 @@ main() {
 
   clone_repo
   cd "$REPO_DIR"
+  prompt_portainer
   prompt_env
   prompt_macvlan
   create_macvlan_network
