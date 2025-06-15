@@ -153,7 +153,7 @@ prompt_env() {
 	read -r TZ
 	echo -ne "${GREEN}Web admin password: ${NC}"
 	read -r WEBPASSWORD
-	echo -ne "${GREEN}Web port: ${NC}"
+	echo -ne "${GREEN}Pihole Web-GUI port: ${NC}"
 	read -r PIHOLE_WEBPORT
 	echo -ne "${GREEN}Domain name (e.g. local): ${NC}"
 	read -r DOMAIN_NAME
@@ -161,7 +161,7 @@ prompt_env() {
 	read -r WEBTHEME
 	echo -ne "${GREEN}Hostname (e.g. pihole): ${NC}"
 	read -r HOSTNAME
-	echo -ne "${GREEN}Pihole static IP (e.g. 192.168.10.50): ${NC}"
+	echo -ne "${GREEN}Pihole static IP (e.g. 192.168.10.20): ${NC}"
 	read -r PIHOLE_IP
   else
 	TZ="Europe/Berlin"
@@ -170,6 +170,7 @@ prompt_env() {
 	DOMAIN_NAME="local"
 	WEBTHEME="default-dark"
 	HOSTNAME="pihole"
+        PIHOLE_IP="192.168.10.20"
   fi
 
   cat > .env <<EOF
