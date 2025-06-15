@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 REPO_URL="https://github.com/mpgirro/docker-pihole-unbound.git"
 REPO_DIR="docker-pihole-unbound"
 PORTAINER_INSTALLED=false
-HOST_IP=$(ip route get 1 | awk '{print $7; exit}')
+HOST_IP=$(hostname -I | awk '{print $1}')
 
 print_header() {
   clear
