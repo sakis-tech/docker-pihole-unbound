@@ -9,8 +9,13 @@ A complete solution for automatically deploying Pi-hole with Unbound DNS resolve
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Updating your Installation](#updating-your-installation)
+- [Updating Your Installation](#updating-your-installation)
+- [Project Structure](#project-structure)
 - [Advanced Configuration](#advanced-configuration)
+- [Troubleshooting](#troubleshooting)
+- [Network Configuration](#network-configuration)
+- [Support](#support)
+- [License](#license)
 
 ## What is this?
 
@@ -114,10 +119,20 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole
 The update script automatically:
 
 1. **Locates** your Pi-hole installation directory
-2. **Downloads** the latest Docker images
-3. **Restarts** containers with the updated images
-4. **Displays** your current configuration
-5. **Shows** container logs if requested
+2. **Records** current Pi-hole and Unbound versions
+3. **Downloads** the latest Docker images
+4. **Restarts** containers with the updated images
+5. **Shows version changes** comparing old and new versions
+6. **Tests DNS resolution** against common domains
+7. **Displays** your current configuration
+8. **Shows** container logs if requested
+
+### Update Features
+
+- **Version tracking**: Shows what changed from the previous to the new version
+- **Configuration protection**: Ensures your settings are preserved during updates
+- **Health checks**: Tests DNS resolution functionality after updates
+- **Diagnostic information**: Gives troubleshooting tips if any issues are detected
 
 ## Project Structure
 
@@ -181,6 +196,33 @@ While most Pi-hole settings can be managed through the web interface, advanced c
 ### DNS Functionality
 - **Some domains not resolving**: Check for domain-specific blocks in Pi-hole's query log
 - **Slow DNS resolution**: Verify your upstream DNS servers in Unbound configuration
+
+### DNS Resolution Issues
+
+- If you cannot access Pi-hole's web interface, make sure the port mapping in the Docker Compose file is correctly set.
+- If DNS resolution doesn't work, ensure that your router/DHCP server points to Pi-hole's IP for DNS, or manually configure your devices.
+
+### macvlan Network Configuration
+
+This setup uses macvlan networking to give Pi-hole its own dedicated IP address on your network. Important notes about this configuration:
+
+- Pi-hole DNS service works properly for all network devices
+- The host machine cannot directly communicate with the container (macvlan limitation)
+- Update script's external DNS tests will report failures when run from the host
+- Internal DNS tests run from inside the container will pass, confirming DNS is working correctly
+
+#### Recommended Host Configuration with macvlan
+
+When using macvlan, the host machine cannot directly reach the container. To allow DNS resolution on the host:
+
+1. Configure your router as the DNS server in `/etc/resolv.conf` on the host:
+   ```
+   nameserver 192.168.10.1  # Replace with your router's IP
+   ```
+
+2. Configure your router to use Pi-hole (192.168.10.20) as its DNS server
+
+This creates a path where: Host → Router → Pi-hole → Internet
 
 ## Support
 
