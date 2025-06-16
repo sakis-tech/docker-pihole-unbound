@@ -63,7 +63,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole
    - Pi-hole settings (password, web port, theme)
    - Optional Portainer installation for container management
 3. **Docker network setup** - Creates a macvlan network for your Pi-hole
-4. **Container deployment** - Pulls and launches the Pi-hole with Unbound container
+4. **Container deployment** - Pulls and launches the Pi-hole with Unbound container using Named Volumes
 5. **Optional cleanup** - Remove all files except docker-compose.yaml and .env if desired
 
 ### After installation
@@ -81,18 +81,18 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole
 After your Pi-hole + Unbound installation is running, use this script to set up convenient host-based configuration:
 
 ```bash
-sudo bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
 ```
 
 #### What the setup script does:
 
 1. **Automatically finds** your Pi-hole installation directory
-2. **Creates** a configuration directory structure on your host
-3. **Downloads** the Unbound configuration from GitHub
-4. **Updates** docker-compose.yaml to mount the host configuration
-5. **Restarts** the container with the new configuration
+2. **Creates** a local `./unbound` directory for custom configurations
+3. **Generates** a default custom.conf with recommended DNSSEC settings
+4. **Updates** docker-compose.yaml to mount this directory into the container
+5. **Restarts** the container to apply the changes
 
-After running this script, you can edit Unbound configuration files directly on your host system without needing to access the container.
+After running this script, you can edit Unbound configuration files directly from your host system by modifying the `./unbound/custom.conf` file. Changes take effect after restarting the container.
 
 ### User-Friendly Experience
 
@@ -137,14 +137,23 @@ The update script automatically:
 
 ## Project Structure
 
-After installation, your project will have this structure:
+After installation, your project directory will include:
 
 ```
-docker-pihole-unbound/
+./
 ├── docker-compose.yaml  # Container configuration
 ├── .env                 # Environment variables
 └── unbound/             # Custom Unbound configuration directory
     └── custom.conf      # Custom DNS resolver settings
+```
+
+The installer also creates three Docker named volumes with shorter, more manageable names:
+
+```
+Docker Volumes:
+├── pihole    # Pi-hole configuration storage
+├── dnsmasq   # DNS configuration storage
+├── unbound   # Unbound core configuration storage
 ```
 
 The configuration data is stored in Docker named volumes for better portability and permission management:
