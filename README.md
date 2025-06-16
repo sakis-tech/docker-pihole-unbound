@@ -64,6 +64,7 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole
    - Optional Portainer installation for container management
 3. **Docker network setup** - Creates a macvlan network for your Pi-hole
 4. **Container deployment** - Pulls and launches the Pi-hole with Unbound container
+5. **Optional cleanup** - Remove all files except docker-compose.yaml and .env if desired
 
 ### After installation
 
@@ -136,16 +137,23 @@ The update script automatically:
 
 ## Project Structure
 
-After installation and setup, your project will have this structure:
+After installation, your project will have this structure:
 
 ```
-/docker-pihole-unbound/
-├── docker-compose.yaml    # Container configuration
-├── .env                   # Environment variables
-└── config/                # Configuration directory
-    ├── pihole/            # Pi-hole configuration
-    └── unbound/           # Unbound configuration
-        └── pi-hole.conf   # DNS resolver settings
+docker-pihole-unbound/
+├── docker-compose.yaml  # Container configuration
+├── .env                 # Environment variables
+└── unbound/             # Custom Unbound configuration directory
+    └── custom.conf      # Custom DNS resolver settings
+```
+
+The configuration data is stored in Docker named volumes for better portability and permission management:
+
+```
+Docker Volumes:
+├── pihole    # Pi-hole configuration storage
+├── dnsmasq   # DNS configuration storage
+└── unbound   # Unbound configuration storage
 ```
 
 ## Advanced Configuration
@@ -155,10 +163,10 @@ After installation and setup, your project will have this structure:
 After running the setup script, you can customize Unbound by editing:
 
 ```
-./config/unbound/unbound.conf.d/pi-hole.conf
+./unbound/custom.conf
 ```
 
-This file contains the configuration for your DNS resolver including DNSSEC settings, caching parameters, and other DNS-related options.
+This file contains custom configuration options for your DNS resolver including DNSSEC settings, caching parameters, and other DNS-related options. The default configuration already includes recommended DNSSEC validation settings.
 
 ### Applying Configuration Changes
 
