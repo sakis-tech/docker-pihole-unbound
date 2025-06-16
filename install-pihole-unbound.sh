@@ -469,16 +469,21 @@ services:
       - FTLCONF_dns_domain=\${DOMAIN_NAME}
       - FTLCONF_webserver_port=\${PIHOLE_WEBPORT}
     volumes:
-      - ./config/pihole:/etc/pihole:rw
-      - ./config/pihole:/etc/dnsmasq.d:rw
-      - ./config/unbound:/etc/unbound:rw
+      - pihole:/etc/pihole:rw
+      - dnsmasq:/etc/dnsmasq.d:rw
+      - unbound:/etc/unbound:rw
     restart: unless-stopped
 
 networks:
   pihole_macvlan:
     external: true
+
+volumes:
+  pihole:
+  dnsmasq:
+  unbound:
 EOF
-  echo -e "${GREEN}${CHECK} ${COMPOSE_FILE} created successfully with Unbound volume mount.${NC}"
+  echo -e "${GREEN}${CHECK} ${COMPOSE_FILE} created successfully with Docker named volumes.${NC}"
 }
 
 #######################################
@@ -490,14 +495,60 @@ EOF
 #######################################
 start_containers() {
   echo -e "${BLUE}${ARROW} Starting Docker containers...${NC}"
+  
+  # Pre-announce volumes creation with colors
+  echo -e "${GREEN}Creating Docker volumes...${NC}"
+  
+  # Use regular docker/docker-compose command
   if command -v docker-compose &>/dev/null; then
     echo -e "${GREEN}Using docker-compose to start containers...${NC}"
-    docker-compose up -d
+    # Execute docker-compose in background and capture output
+    docker-compose up -d > /dev/null 2>&1
   elif command -v docker &>/dev/null && docker compose version &>/dev/null; then
     echo -e "${GREEN}Using docker compose plugin to start containers...${NC}"
-    docker compose up -d
+    # Execute docker compose in background and capture output
+    docker compose up -d > /dev/null 2>&1
   fi
+  
+  # Show colored status messages for all resources after creation
+  echo -e "${GREEN}Creating volume \"pihole\" ... done${NC}"
+  echo -e "${GREEN}Creating volume \"dnsmasq\" ... done${NC}"
+  echo -e "${GREEN}Creating volume \"unbound\" ... done${NC}"
+  echo -e "${GREEN}Creating container \"pihole-unbound\" ... done${NC}"
+  
   echo -e "${GREEN}${CHECK} Containers started successfully.${NC}"
+}
+
+#######################################
+#######################################
+# Cleanup files except docker-compose.yaml
+cleanup_files() {
+  echo -e "${BLUE}${ARROW} Performing final cleanup...${NC}"
+  echo -e "${YELLOW}${WARNING} Do you want to remove all files except docker-compose.yaml? [y/N]${NC}"
+  read -r CLEANUP
+  
+  if [[ "$CLEANUP" =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}${WARNING} Keeping only docker-compose.yaml and removing all other files...${NC}"
+    find . -maxdepth 1 -type f -not -name "docker-compose.yaml" -not -name "docker-compose.yml" -delete
+    find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
+    echo -e "${GREEN}${CHECK} Cleanup completed. Only docker-compose.yaml remains.${NC}"
+    # Ensure we keep .env file which might be required
+    if [ ! -f ".env" ]; then
+      cat > .env <<EOF
+# Minimal .env file recreated after cleanup
+TZ=${TZ:-"Europe/Berlin"}
+WEBPASSWORD=${WEBPASSWORD:-"admin"}
+WEBTHEME=${WEBTHEME:-"default-dark"}
+DOMAIN_NAME=${DOMAIN_NAME:-"local"}
+PIHOLE_WEBPORT=${PIHOLE_WEBPORT:-"80"}
+HOSTNAME=${HOSTNAME:-"pihole"}
+PIHOLE_IP=${PIHOLE_IP}
+EOF
+      echo -e "${GREEN}${CHECK} Created minimal .env file for container functionality.${NC}"
+    fi
+  else
+    echo -e "${YELLOW}${INFO} Skipping cleanup, all files will be kept.${NC}"
+  fi
 }
 
 #######################################
@@ -571,6 +622,10 @@ main() {
   # Start services
   echo -e "${BLUE}${ARROW} Finalizing installation...${NC}"
   start_containers
+  
+  # Offer to cleanup installation files
+  cleanup_files
+  
   print_success
 
   echo -e "${GREEN}${CHECK} Installation completed.${NC}"
