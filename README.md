@@ -128,13 +128,6 @@ The update script automatically:
 7. **Displays** your current configuration
 8. **Shows** container logs if requested
 
-### Update Features
-
-- **Version tracking**: Shows what changed from the previous to the new version
-- **Configuration protection**: Ensures your settings are preserved during updates
-- **Health checks**: Tests DNS resolution functionality after updates
-- **Diagnostic information**: Gives troubleshooting tips if any issues are detected
-
 ## Project Structure
 
 After installation, your project directory will include:
@@ -156,81 +149,26 @@ Docker Volumes:
 ├── unbound   # Unbound core configuration storage
 ```
 
-The configuration data is stored in Docker named volumes for better portability and permission management:
-
-```
-Docker Volumes:
-├── pihole    # Pi-hole configuration storage
-├── dnsmasq   # DNS configuration storage
-└── unbound   # Unbound configuration storage
-```
-
-## Advanced Configuration
-
-### Customizing Unbound DNS Resolver
-
-After running the setup script, you can customize Unbound by editing:
-
-```
-./unbound/custom.conf
-```
-
-This file contains custom configuration options for your DNS resolver including DNSSEC settings, caching parameters, and other DNS-related options. The default configuration already includes recommended DNSSEC validation settings.
-
-### Applying Configuration Changes
-
-After making changes to any configuration files, restart the container:
-
-```bash
-docker compose restart pihole-unbound
-```
-
-### Additional Pi-hole Settings
-
-While most Pi-hole settings can be managed through the web interface, advanced configurations can be found in:
-
-```
-./config/pihole/
-```
-
 ### Common Tasks
 
 - **View Pi-hole logs**: `docker compose logs pihole-unbound`
 - **Access Pi-hole container**: `docker compose exec pihole-unbound bash`
 - **Update gravity list**: `docker compose exec pihole-unbound pihole -g`
 
-## Troubleshooting
+---
 
-### Container Issues
-- **Container not starting**: Check logs with `docker compose logs pihole-unbound`
-- **Permission problems**: If you've added your user to the docker group, log out and back in
+## Network Configuration
 
-### Network Issues
-- **Network connectivity issues**: Verify your macvlan configuration matches your network settings
-- **DNS resolution problems**: Ensure your router is correctly forwarding DNS queries to Pi-hole
-- **Can't access admin interface**: Check if the IP address and port are correct
+The installer creates a Docker macvlan network called `pihole_macvlan` that allows the Pi-hole container to appear as a separate physical device on your network with its own IP address.
 
-### DNS Functionality
-- **Some domains not resolving**: Check for domain-specific blocks in Pi-hole's query log
-- **Slow DNS resolution**: Verify your upstream DNS servers in Unbound configuration
+This approach has several benefits:
+- Direct accessibility from all network devices
+- Can function as your network's DHCP server if desired
+- Cleaner network architecture (no port forwarding required)
 
-### DNS Resolution Issues
+### Recommended Host Configuration with macvlan
 
-- If you cannot access Pi-hole's web interface, make sure the port mapping in the Docker Compose file is correctly set.
-- If DNS resolution doesn't work, ensure that your router/DHCP server points to Pi-hole's IP for DNS, or manually configure your devices.
-
-### macvlan Network Configuration
-
-This setup uses macvlan networking to give Pi-hole its own dedicated IP address on your network. Important notes about this configuration:
-
-- Pi-hole DNS service works properly for all network devices
-- The host machine cannot directly communicate with the container (macvlan limitation)
-- Update script's external DNS tests will report failures when run from the host
-- Internal DNS tests run from inside the container will pass, confirming DNS is working correctly
-
-#### Recommended Host Configuration with macvlan
-
-When using macvlan, the host machine cannot directly reach the container. To allow DNS resolution on the host:
+Since we're using macvlan, the host machine cannot directly access the container. To still allow DNS resolution from the host:
 
 1. Configure your router as the DNS server in `/etc/resolv.conf` on the host:
    ```
@@ -248,17 +186,6 @@ For issues related to these scripts, please open an issue in this repository.
 For Pi-hole specific questions, refer to the [Pi-hole documentation](https://docs.pi-hole.net/).
 
 For Unbound configuration options, see the [Unbound documentation](https://unbound.docs.nlnetlabs.nl/).
-
----
-
-## Network Configuration
-
-The installer creates a Docker macvlan network called `pihole_macvlan` that allows the Pi-hole container to appear as a separate physical device on your network with its own IP address.
-
-This approach has several benefits:
-- Direct accessibility from all network devices
-- Can function as your network's DHCP server if desired
-- Cleaner network architecture (no port forwarding required)
 
 ---
 
