@@ -80,14 +80,14 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole
 After your Pi-hole + Unbound installation is running, use this script to set up convenient host-based configuration:
 
 ```bash
-bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
+sudo bash -c "$(wget -qO- https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
 ```
 
 #### What the setup script does:
 
 1. **Automatically finds** your Pi-hole installation directory
 2. **Creates** a configuration directory structure on your host
-3. **Extracts** the current Unbound configuration from the container
+3. **Downloads** the Unbound configuration from GitHub
 4. **Updates** docker-compose.yaml to mount the host configuration
 5. **Restarts** the container with the new configuration
 
@@ -155,7 +155,7 @@ After installation and setup, your project will have this structure:
 After running the setup script, you can customize Unbound by editing:
 
 ```
-./config/unbound/pi-hole.conf
+./config/unbound/unbound.conf.d/pi-hole.conf
 ```
 
 This file contains the configuration for your DNS resolver including DNSSEC settings, caching parameters, and other DNS-related options.
