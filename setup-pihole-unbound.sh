@@ -220,24 +220,8 @@ check_container() {
 #######################################
 create_config_dir() {
   echo -e "${BLUE}${ARROW} Creating Unbound configuration directory on host...${NC}"
-  
-  # Check if sudo is needed
-  if [ ! -w "$HOST_CONFIG_DIR" ] && [ -d "$HOST_CONFIG_DIR" ]; then
-    echo -e "${YELLOW}${WARNING} Permission issue detected. Trying with sudo...${NC}"
-    if command -v sudo &>/dev/null; then
-      sudo mkdir -p "${HOST_UNBOUND_CONF_DIR}"
-      # Fix ownership
-      sudo chown -R $(whoami):$(id -gn) "${HOST_CONFIG_DIR}"
-      echo -e "${GREEN}${CHECK} Created directory with sudo: ${HOST_UNBOUND_CONF_DIR}${NC}"
-    else
-      echo -e "${RED}${CROSS} Cannot create directory due to permissions.${NC}"
-      echo -e "${YELLOW}${INFO} Please run this script with sudo.${NC}"
-      exit 1
-    fi
-  else
-    mkdir -p "${HOST_UNBOUND_CONF_DIR}"
-    echo -e "${GREEN}${CHECK} Created directory: ${HOST_UNBOUND_CONF_DIR}${NC}"
-  fi
+  mkdir -p "${HOST_UNBOUND_CONF_DIR}"
+  echo -e "${GREEN}${CHECK} Created directory: ${HOST_UNBOUND_CONF_DIR}${NC}"
 }
 
 #######################################
@@ -249,30 +233,9 @@ create_config_dir() {
 #######################################
 copy_config() {
   echo -e "${BLUE}${ARROW} Copying Unbound configuration from container...${NC}"
-  
-  # Check if the file exists in the container
-  if ! docker exec "${CONTAINER}" test -f "${CONF_FILE}" 2>/dev/null; then
-    echo -e "${RED}${CROSS} Configuration file not found in container at ${CONF_FILE}${NC}"
-    echo -e "${YELLOW}${WARNING} Please check if the container image is correct.${NC}"
-    return 1
-  fi
-  
-  # Copy the file from container to host
   if [ ! -f "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" ]; then
-    echo -e "${YELLOW}• Copying configuration from container to host...${NC}"
-    if docker cp "${CONTAINER}:${CONF_FILE}" "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" 2>/dev/null; then
-      echo -e "${GREEN}${CHECK} Successfully copied Unbound configuration file.${NC}"
-    else
-      echo -e "${YELLOW}${WARNING} Permission issue copying file. Trying with sudo...${NC}"
-      if command -v sudo &>/dev/null; then
-        docker cp "${CONTAINER}:${CONF_FILE}" - | sudo tee "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf" > /dev/null
-        sudo chown $(whoami):$(id -gn) "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf"
-        echo -e "${GREEN}${CHECK} Successfully copied file using sudo.${NC}"
-      else
-        echo -e "${RED}${CROSS} Could not copy file due to permissions.${NC}"
-        return 1
-      fi
-    fi
+    docker cp "${CONTAINER}:${CONF_FILE}" "${HOST_UNBOUND_CONF_DIR}/pi-hole.conf"
+    echo -e "${GREEN}${CHECK} Successfully copied Unbound configuration file.${NC}"
   else
     echo -e "${YELLOW}${WARNING} Unbound configuration file already exists on host.${NC}"
   fi
