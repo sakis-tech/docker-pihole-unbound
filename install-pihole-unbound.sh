@@ -22,7 +22,6 @@ NC='\033[0m' # No Color
 CHECK="\u2714"
 CROSS="\u2718"
 ARROW="\u25B6"
-WARNING="\u26A0\uFE0F"
 GEAR="\u2699"
 SEARCH="\U1F50D"
 RESTART="\U1F504"
@@ -57,7 +56,7 @@ print_header() {
   echo -e "${YELLOW}  • ${GREEN}Launch Pi-hole + Unbound using Docker${NC}"
   echo -e "${YELLOW}  • ${GREEN}Optional: Install Portainer (Docker GUI)${NC}"
   echo
-  echo -e "${YELLOW}${WARNING} Do you wish to continue? [Y/n]${NC}"
+  echo -e "${YELLOW}Do you wish to continue? [Y/n]${NC}"
   read -r CONTINUE
 
   if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
@@ -154,11 +153,11 @@ detect_os() {
         echo -e "${GREEN}${CHECK} Detected CentOS/Fedora system.${NC}" ;;
       *)
         OS="unknown"
-        echo -e "${YELLOW}${WARNING} Unknown OS type: $ID${NC}" ;;
+        echo -e "${YELLOW}${} Unknown OS type: $ID${NC}" ;;
     esac
   else
     OS="unknown"
-    echo -e "${YELLOW}${WARNING} Could not detect operating system.${NC}"
+    echo -e "${YELLOW}${} Could not detect operating system.${NC}"
   fi
 }
 
@@ -202,7 +201,7 @@ install_portainer() {
 #######################################
 # Prompt user if they want to install Portainer
 # Globals:
-#   GREEN, BLUE, YELLOW, CHECK, WARNING, NC, PORTAINER_INSTALLED
+#   GREEN, BLUE, YELLOW, CHECK, , NC, PORTAINER_INSTALLED
 # Arguments:
 #   None
 #######################################
@@ -212,7 +211,7 @@ prompt_portainer() {
     echo -e "${GREEN}${CHECK} Portainer container already exists - skipping installation.${NC}"
     PORTAINER_INSTALLED=true
   else
-    echo -e "${YELLOW}${WARNING} Portainer is not installed.${NC}"
+    echo -e "${YELLOW}${} Portainer is not installed.${NC}"
     echo -ne "${YELLOW}Would you like to install Portainer? [Y/n]: ${NC}"
     read -r INSTALL_PORTAINER
     if [[ "$INSTALL_PORTAINER" =~ ^[Nn]$ ]]; then
@@ -268,7 +267,7 @@ check_docker_compose() {
 #######################################
 # Check if user is in docker group
 # Globals:
-#   GREEN, YELLOW, BLUE, ARROW, CHECK, WARNING, NC
+#   GREEN, YELLOW, BLUE, ARROW, CHECK, , NC
 # Arguments:
 #   $1 - Username to check
 # Returns:
@@ -281,7 +280,7 @@ check_docker_group() {
     echo -e "${GREEN}${CHECK} $user is already in docker group.${NC}"
     return 0
   else
-    echo -e "${YELLOW}${WARNING} $user is NOT in docker group.${NC}"
+    echo -e "${YELLOW}${} $user is NOT in docker group.${NC}"
     return 1
   fi
 }
@@ -303,14 +302,14 @@ add_user_to_docker_group() {
 #######################################
 # Clone the repository if it doesn't exist
 # Globals:
-#   GREEN, YELLOW, BLUE, ARROW, CHECK, DOWNLOAD, WARNING, NC, REPO_URL, REPO_DIR
+#   GREEN, YELLOW, BLUE, ARROW, CHECK, DOWNLOAD, , NC, REPO_URL, REPO_DIR
 # Arguments:
 #   None
 #######################################
 clone_repo() {
   echo -e "${BLUE}${ARROW} Checking for repository...${NC}"
   if [[ -d "$REPO_DIR" ]]; then
-    echo -e "${YELLOW}${WARNING} Repository already exists - skipping clone.${NC}"
+    echo -e "${YELLOW}${} Repository already exists - skipping clone.${NC}"
   else
     echo -e "${GREEN}${DOWNLOAD} Cloning repository from ${REPO_URL}...${NC}"
     git clone "$REPO_URL"
@@ -321,7 +320,7 @@ clone_repo() {
 #######################################
 # Configure environment variables
 # Globals:
-#   BLUE, GREEN, YELLOW, ARROW, WRITE, WARNING, NC
+#   BLUE, GREEN, YELLOW, ARROW, WRITE, , NC
 #   TZ, WEBPASSWORD, PIHOLE_WEBPORT, DOMAIN_NAME, WEBTHEME, HOSTNAME, PIHOLE_IP
 # Arguments:
 #   None
@@ -340,7 +339,7 @@ prompt_env() {
   echo -e "${YELLOW}  • ${GREEN}Hostname: pihole${NC}"
   echo -e "${YELLOW}  • ${GREEN}Pihole static IP (e.g. 192.168.10.20)${NC}"
 
-  echo -e "${YELLOW}${WARNING} Use example config? [Y/n]: ${NC}\c"
+  echo -e "${YELLOW}${} Use example config? [Y/n]: ${NC}\c"
   read -r USE_EXAMPLE
 
   if [[ "$USE_EXAMPLE" =~ ^[Nn]$ ]]; then
@@ -386,7 +385,7 @@ EOF
 #######################################
 # Configure Docker macvlan network
 # Globals:
-#   GREEN, YELLOW, BLUE, ARROW, WARNING, NC
+#   GREEN, YELLOW, BLUE, ARROW, , NC
 #   MACVLAN_PARENT, MACVLAN_SUBNET, MACVLAN_GATEWAY
 # Arguments:
 #   None
@@ -400,7 +399,7 @@ prompt_macvlan() {
   echo -e "${GREEN}Available network interfaces:${NC}"
   ip -o link show | awk -F': ' '{print "  • "$2}' | grep -vE "lo|docker"
 
-  echo -e "${YELLOW}${WARNING} Please configure your network settings:${NC}"
+  echo -e "${YELLOW}${} Please configure your network settings:${NC}"
   echo -ne "${YELLOW}Select parent interface for macvlan (e.g. eth0): ${NC}"
   read -r MACVLAN_PARENT
 
@@ -417,7 +416,7 @@ prompt_macvlan() {
 #######################################
 # Create Docker macvlan network
 # Globals:
-#   GREEN, YELLOW, BLUE, ARROW, CHECK, WARNING, GEAR, NC
+#   GREEN, YELLOW, BLUE, ARROW, CHECK, , GEAR, NC
 #   MACVLAN_SUBNET, MACVLAN_GATEWAY, MACVLAN_PARENT
 # Arguments:
 #   None
@@ -433,7 +432,7 @@ create_macvlan_network() {
       pihole_macvlan
     echo -e "${GREEN}${CHECK} macvlan network 'pihole_macvlan' created successfully.${NC}"
   else
-    echo -e "${YELLOW}${WARNING} macvlan network already exists - skipping creation.${NC}"
+    echo -e "${YELLOW}${} macvlan network already exists - skipping creation.${NC}"
   fi
 }
 
@@ -524,11 +523,11 @@ start_containers() {
 # Cleanup files except docker-compose.yaml
 cleanup_files() {
   echo -e "${BLUE}${ARROW} Performing final cleanup...${NC}"
-  echo -e "${YELLOW}${WARNING} Do you want to remove all files except docker-compose.yaml? [y/N]${NC}"
+  echo -e "${YELLOW}${} Do you want to remove all files except docker-compose.yaml? [y/N]${NC}"
   read -r CLEANUP
   
   if [[ "$CLEANUP" =~ ^[Yy]$ ]]; then
-    echo -e "${YELLOW}${WARNING} Keeping only docker-compose.yaml and removing all other files...${NC}"
+    echo -e "${YELLOW}${} Keeping only docker-compose.yaml and removing all other files...${NC}"
     find . -maxdepth 1 -type f -not -name "docker-compose.yaml" -not -name "docker-compose.yml" -delete
     find . -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} \;
     echo -e "${GREEN}${CHECK} Cleanup completed. Only docker-compose.yaml remains.${NC}"
@@ -604,7 +603,7 @@ main() {
   CURRENT_USER=$(whoami)
   check_docker_group "$CURRENT_USER" || {
     add_user_to_docker_group "$CURRENT_USER"
-    echo -e "${YELLOW}${WARNING} Please logout and login again, then rerun the script.${NC}"
+    echo -e "${YELLOW}${} Please logout and login again, then rerun the script.${NC}"
     exit 0
   }
 
