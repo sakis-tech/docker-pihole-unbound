@@ -11,8 +11,6 @@ A complete solution for automatically deploying Pi-hole with Unbound DNS resolve
 - [Configuration](#configuration)
 - [Updating Your Installation](#updating-your-installation)
 - [Project Structure](#project-structure)
-- [Advanced Configuration](#advanced-configuration)
-- [Troubleshooting](#troubleshooting)
 - [Network Configuration](#network-configuration)
 - [Support](#support)
 - [License](#license)
