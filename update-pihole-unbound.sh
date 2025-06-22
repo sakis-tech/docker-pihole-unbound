@@ -335,21 +335,29 @@ show_version_changes() {
   
   # Show Unbound version comparison
   echo -n -e "${YELLOW}• Unbound:    ${NC}"
-  if [[ "$OLD_UNBOUND_VERSION" == "unknown" && "$NEW_UNBOUND_VERSION" != "unknown" ]]; then
+  
+  # Trim any whitespace from version strings
+  OLD_UNBOUND_VERSION_CLEAN=$(echo "$OLD_UNBOUND_VERSION" | tr -d ' \t\n\r')
+  NEW_UNBOUND_VERSION_CLEAN=$(echo "$NEW_UNBOUND_VERSION" | tr -d ' \t\n\r')
+  
+  # Debug-Ausgabe für Debugging entfernen oder auskommentieren
+  # echo "DEBUG: Old='$OLD_UNBOUND_VERSION_CLEAN', New='$NEW_UNBOUND_VERSION_CLEAN'" > /dev/stderr
+  
+  if [[ "$OLD_UNBOUND_VERSION_CLEAN" == "unknown" && "$NEW_UNBOUND_VERSION_CLEAN" != "unknown" ]]; then
     # Wenn nur die neue Version bekannt ist, zeige nur diese an
-    echo -e "${GREEN}v$NEW_UNBOUND_VERSION${NC}"
-  elif [[ "$OLD_UNBOUND_VERSION" != "unknown" && "$NEW_UNBOUND_VERSION" == "unknown" ]]; then
+    echo -e "${GREEN}v$NEW_UNBOUND_VERSION_CLEAN${NC}"
+  elif [[ "$OLD_UNBOUND_VERSION_CLEAN" != "unknown" && "$NEW_UNBOUND_VERSION_CLEAN" == "unknown" ]]; then
     # Wenn nur die alte Version bekannt ist, zeige diese mit Warnung
-    echo -e "${RED}v$OLD_UNBOUND_VERSION${NC} → ${YELLOW}unknown${NC}"
-  elif [[ "$OLD_UNBOUND_VERSION" == "unknown" && "$NEW_UNBOUND_VERSION" == "unknown" ]]; then
+    echo -e "${RED}v$OLD_UNBOUND_VERSION_CLEAN${NC} → ${YELLOW}unknown${NC}"
+  elif [[ "$OLD_UNBOUND_VERSION_CLEAN" == "unknown" && "$NEW_UNBOUND_VERSION_CLEAN" == "unknown" ]]; then
     # Wenn beide unbekannt sind
     echo -e "${YELLOW}unknown${NC}"
-  elif [[ "$OLD_UNBOUND_VERSION" != "$NEW_UNBOUND_VERSION" ]]; then
+  elif [[ "$OLD_UNBOUND_VERSION_CLEAN" != "$NEW_UNBOUND_VERSION_CLEAN" ]]; then
     # Wenn sich die Version geändert hat
-    echo -e "${RED}v$OLD_UNBOUND_VERSION${NC} → ${GREEN}v$NEW_UNBOUND_VERSION${NC}"
+    echo -e "${RED}v$OLD_UNBOUND_VERSION_CLEAN${NC} → ${GREEN}v$NEW_UNBOUND_VERSION_CLEAN${NC}"
   else
     # Wenn keine Änderung
-    echo -e "${GREEN}v$NEW_UNBOUND_VERSION${NC} (no change)"
+    echo -e "${GREEN}v$NEW_UNBOUND_VERSION_CLEAN${NC} (no change)"
   fi
   
   # Clean up temp files
