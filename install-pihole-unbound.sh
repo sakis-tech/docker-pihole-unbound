@@ -46,7 +46,7 @@ COMPOSE_FILE="docker-compose.yaml"
 print_header() {
   clear
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${BLUE}  🚀 Pi-hole + Unbound Auto‑Installer                         ${NC}"
+  echo -e "${BLUE}    Pi-hole + Unbound Auto‑Installer                         ${NC}"
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
   echo -e "${GREEN}This script will automatically:${NC}"
   echo -e "${YELLOW}  • ${GREEN}Install Docker & Docker Compose${NC}"
