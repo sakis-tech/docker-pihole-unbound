@@ -109,27 +109,27 @@ install_docker_compose() {
 }
 
 #######################################
-# Install Git and Curl
+# Install Git
 # Globals:
 #   GREEN, RED, YELLOW, BLUE, ARROW, CHECK, CROSS, NC, OS
 # Arguments:
 #   None
 #######################################
-install_git_curl() {
-  echo -e "${BLUE}${ARROW} Installing Git and Curl...${NC}"
+install_git() {
+  echo -e "${BLUE}${ARROW} Installing Git...${NC}"
   if [[ "$OS" == "debian" || "$OS" == "ubuntu" ]]; then
     echo -e "${YELLOW}Running apt-get update...${NC}"
     sudo apt-get update
-    echo -e "${GREEN}Installing git and curl packages...${NC}"
-    sudo apt-get install -y git curl
+    echo -e "${GREEN}Installing git package...${NC}"
+    sudo apt-get install -y git
   elif [[ "$OS" == "centos" || "$OS" == "fedora" ]]; then
-    echo -e "${GREEN}Installing git and curl packages...${NC}"
-    sudo yum install -y git curl
+    echo -e "${GREEN}Installing git package...${NC}"
+    sudo yum install -y git
   else
-    echo -e "${RED}${CROSS} Unsupported OS for automatic Git/Curl installation.${NC}"
+    echo -e "${RED}${CROSS} Unsupported OS for automatic Git installation.${NC}"
     exit 1
   fi
-  echo -e "${GREEN}${CHECK} Git and Curl successfully installed.${NC}"
+  echo -e "${GREEN}${CHECK} Git successfully installed.${NC}"
 }
 
 #######################################
@@ -617,10 +617,9 @@ main() {
   detect_os
   
   echo -e "${BLUE}${ARROW} Checking for required tools...${NC}"
-  check_command git || install_git_curl
-  check_command curl || install_git_curl
+  check_command git || install_git
   
-  # Now install Docker after we have curl
+  # Now install Docker
   check_docker || install_docker
   check_docker_compose || install_docker_compose
 
