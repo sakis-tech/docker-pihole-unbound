@@ -76,24 +76,6 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole
 
 ## Configuration
 
-### Unbound Configuration Setup
-
-After your Pi-hole + Unbound installation is running, use this script to set up convenient host-based configuration:
-
-```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/setup-pihole-unbound.sh)"
-```
-
-#### What the setup script does:
-
-1. **Automatically finds** your Pi-hole installation directory
-2. **Creates** a local `./unbound` directory for custom configurations
-3. **Generates** a default custom.conf with recommended DNSSEC settings
-4. **Updates** docker-compose.yaml to mount this directory into the container
-5. **Restarts** the container to apply the changes
-
-After running this script, you can edit Unbound configuration files directly from your host system by modifying the `./unbound/custom.conf` file. Changes take effect after restarting the container.
-
 ### User-Friendly Experience
 
 All scripts in this project feature:
@@ -135,18 +117,16 @@ After installation, your project directory will include:
 ```
 ./
 ├── docker-compose.yaml  # Container configuration
-├── .env                 # Environment variables
-└── unbound/             # Custom Unbound configuration directory
-    └── custom.conf      # Custom DNS resolver settings
+└── .env                 # Environment variables
 ```
 
-The installer also creates three Docker named volumes with shorter, more manageable names:
+The installer creates three Docker named volumes with shorter, more manageable names:
 
 ```
 Docker Volumes:
 ├── pihole    # Pi-hole configuration storage
 ├── dnsmasq   # DNS configuration storage
-├── unbound   # Unbound core configuration storage
+└── unbound   # Unbound core configuration storage
 ```
 
 ### Common Tasks
