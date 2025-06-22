@@ -22,19 +22,19 @@ BLUE='\033[1;34m'
 NC='\033[0m' # No Color
 
 # Icons for better visual feedback
-CHECK="✓"
-CROSS="✗"
-ARROW="▶"
-RESTART="🔄"
-WARNING="⚠️"
-GEAR="⚙️"
-WRITE="📝"
-START="🚀"
-SEARCH="🔍"
-SUCCESS="🎉"
-INFO="ℹ️"
-BACKUP="💾"
-VERSION="📊"
+CHECK="✓ "
+CROSS="✗ "
+ARROW="▶ "
+RESTART="🔄 "
+WARNING="⚠️ "
+GEAR="⚙️ "
+WRITE="📝 "
+START="🚀 "
+SEARCH="🔍 "
+SUCCESS="🎉 "
+INFO="ℹ️ "
+BACKUP="💾 "
+VERSION="📊 "
 
 # Compose command will be set in check_compose() function
 COMPOSE_CMD=""
