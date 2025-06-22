@@ -11,6 +11,7 @@ A complete solution for automatically deploying Pi-hole with Unbound DNS resolve
 - [Configuration](#configuration)
 - [Updating Your Installation](#updating-your-installation)
 - [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
 - [Network Configuration](#network-configuration)
 - [Support](#support)
 - [License](#license)
@@ -176,6 +177,25 @@ Since we're using macvlan, the host machine cannot directly access the container
 2. Configure your router to use Pi-hole (192.168.10.20) as its DNS server
 
 This creates a path where: Host → Router → Pi-hole → Internet
+
+## Troubleshooting
+
+### Portainer Time-out
+
+If you see the following message when accessing Portainer:
+
+```
+New Portainer installation
+Your Portainer instance timed out for security purposes. To re-enable your Portainer instance, you will need to restart Portainer.
+```
+
+This is a security feature of Portainer. To fix this issue, simply restart the Portainer container:
+
+```bash
+docker restart portainer
+```
+
+After restarting, you'll be able to access the Portainer interface again and complete the initial setup.
 
 ## Support
 
