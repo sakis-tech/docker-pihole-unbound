@@ -387,8 +387,35 @@ test_dns_resolution() {
     DNS_TOOL="nslookup"
     echo -e "${GREEN}${CHECK} Using nslookup for DNS tests${NC}"
   else
-    echo -e "${YELLOW}${WARNING} Neither 'dig' nor 'nslookup' found. Install dnsutils/bind-utils package to enable DNS testing.${NC}"
-    echo -e "${YELLOW}• Trying container-internal tests only${NC}"
+    echo -e "${YELLOW}${WARNING} Neither 'dig' nor 'nslookup' found.${NC}"
+    echo -e "${BLUE}${ARROW} Would you like to install dnsutils package to enable DNS testing? (y/n)${NC}"
+    read -r INSTALL_DNSUTILS
+    
+    if [[ "$INSTALL_DNSUTILS" =~ ^[Yy]$ ]]; then
+      echo -e "${YELLOW}• Installing dnsutils package...${NC}"
+      if [[ -f /etc/debian_version ]]; then
+        sudo apt-get update && sudo apt-get install -y dnsutils
+      elif [[ -f /etc/redhat-release ]]; then
+        sudo yum install -y bind-utils
+      else
+        echo -e "${RED}${CROSS} Could not determine your distribution. Please install the DNS tools manually:${NC}"
+        echo -e "${YELLOW}• Debian/Ubuntu: sudo apt-get install dnsutils${NC}"
+        echo -e "${YELLOW}• CentOS/Fedora: sudo yum install bind-utils${NC}"
+      fi
+      
+      # Check if installation was successful
+      if command -v dig &>/dev/null; then
+        DNS_TOOL="dig"
+        echo -e "${GREEN}${CHECK} dnsutils successfully installed, using dig for DNS tests${NC}"
+      elif command -v nslookup &>/dev/null; then
+        DNS_TOOL="nslookup"
+        echo -e "${GREEN}${CHECK} dnsutils successfully installed, using nslookup for DNS tests${NC}"
+      else
+        echo -e "${RED}${CROSS} Installation failed or tools not in path. Trying container-internal tests only${NC}"
+      fi
+    else
+      echo -e "${YELLOW}• Trying container-internal tests only${NC}"
+    fi
   fi
   
   # Check if Pi-hole IP is defined
