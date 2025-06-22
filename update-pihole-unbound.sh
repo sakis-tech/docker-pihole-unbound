@@ -111,7 +111,7 @@ load_env_vars() {
 print_header() {
   clear
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
-  echo -e "${BLUE}        Pi-hole + Unbound Update Script v1.2.0               ${NC}"
+  echo -e "${BLUE}        Pi-hole + Unbound Update Script                      ${NC}"
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
   
   echo -e "${BLUE}${ARROW} This script will automatically:${NC}"
