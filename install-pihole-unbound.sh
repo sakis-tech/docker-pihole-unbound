@@ -50,7 +50,7 @@ print_header() {
   echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
   echo -e "${GREEN}This script will automatically:${NC}"
   echo -e "${YELLOW}  • ${GREEN}Install Docker & Docker Compose${NC}"
-  echo -e "${YELLOW}  • ${GREEN}Install Git & Curl${NC}"
+  echo -e "${YELLOW}  • ${GREEN}Install Git${NC}"
   echo -e "${YELLOW}  • ${GREEN}Clone the Project${NC}"
   echo -e "${YELLOW}  • ${GREEN}Create .env and ${COMPOSE_FILE}${NC}"
   echo -e "${YELLOW}  • ${GREEN}Setup Docker macvlan network${NC}"
