@@ -335,11 +335,20 @@ show_version_changes() {
   
   # Show Unbound version comparison
   echo -n -e "${YELLOW}• Unbound:    ${NC}"
-  if [[ "$OLD_UNBOUND_VERSION" == "unknown" || "$NEW_UNBOUND_VERSION" == "unknown" ]]; then
+  if [[ "$OLD_UNBOUND_VERSION" == "unknown" && "$NEW_UNBOUND_VERSION" != "unknown" ]]; then
+    # Wenn nur die neue Version bekannt ist, zeige nur diese an
     echo -e "${GREEN}v$NEW_UNBOUND_VERSION${NC}"
+  elif [[ "$OLD_UNBOUND_VERSION" != "unknown" && "$NEW_UNBOUND_VERSION" == "unknown" ]]; then
+    # Wenn nur die alte Version bekannt ist, zeige diese mit Warnung
+    echo -e "${RED}v$OLD_UNBOUND_VERSION${NC} → ${YELLOW}unknown${NC}"
+  elif [[ "$OLD_UNBOUND_VERSION" == "unknown" && "$NEW_UNBOUND_VERSION" == "unknown" ]]; then
+    # Wenn beide unbekannt sind
+    echo -e "${YELLOW}unknown${NC}"
   elif [[ "$OLD_UNBOUND_VERSION" != "$NEW_UNBOUND_VERSION" ]]; then
+    # Wenn sich die Version geändert hat
     echo -e "${RED}v$OLD_UNBOUND_VERSION${NC} → ${GREEN}v$NEW_UNBOUND_VERSION${NC}"
   else
+    # Wenn keine Änderung
     echo -e "${GREEN}v$NEW_UNBOUND_VERSION${NC} (no change)"
   fi
   
