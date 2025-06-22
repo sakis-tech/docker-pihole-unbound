@@ -45,11 +45,23 @@ The included scripts make installation and management simple even for beginners.
 
 ## Installation
 
-### One-Command Installation
+### Option 1: One-Command Installation
 
-Use this single command to install everything automatically:
+If `curl` is already installed on your system, use this single command to install everything automatically:
 
 ```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install-pihole-unbound.sh)"
+```
+
+### Option 2: Two-Step Installation (for fresh systems)
+
+For newly installed systems that don't have `curl` yet:
+
+```bash
+# Step 1: Install curl
+sudo apt update && sudo apt install -y curl
+
+# Step 2: Run the installer
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole-unbound/main/install-pihole-unbound.sh)"
 ```
 
@@ -63,6 +75,14 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/sakis-tech/docker-pihole
 3. **Docker network setup** - Creates a macvlan network for your Pi-hole
 4. **Container deployment** - Pulls and launches the Pi-hole with Unbound container using Named Volumes
 5. **Optional cleanup** - Remove all files except docker-compose.yaml and .env if desired
+
+> ⚠️ **Important IP Address Note:**  
+> When configuring the Pi-hole IP address, you **MUST** use a different IP than your host machine. This is required for the Docker macvlan network setup to work properly.
+> 
+> **Example:**  
+> - If your host machine has IP address `192.168.1.10`
+> - Set Pi-hole to something like `192.168.1.20` (but still within your subnet)
+> - Make sure this IP is not already in use by another device
 
 ### After installation
 
